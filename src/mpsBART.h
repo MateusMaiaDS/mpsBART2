@@ -9,8 +9,8 @@ struct modelParam {
         arma::mat x_train;
         arma::vec y;
         arma::mat x_test;
-        arma::cube Z_train;
-        arma::cube Z_test;
+        arma::cube B_train;
+        arma::cube B_test;
 
         // BART prior param specification
         int n_tree;
@@ -41,8 +41,8 @@ struct modelParam {
         modelParam(arma::mat x_train_,
                    arma::vec y_,
                    arma::mat x_test_,
-                   arma::cube Z_train_,
-                   arma::cube Z_test_,
+                   arma::cube B_train_,
+                   arma::cube B_test_,
                    int n_tree_,
                    double alpha_,
                    double beta_,
@@ -107,9 +107,9 @@ struct Node {
      double s_tau_beta_0 = 0.0;
      double beta_zero = 0.0;
      // Storing  splines quantities
-     arma::cube Z;
-     arma::cube Z_t;
-     arma::cube Z_test;
+     arma::cube B;
+     arma::cube B_t;
+     arma::cube B_test;
      arma::mat z_t_ones;
      arma::vec leaf_res;
 

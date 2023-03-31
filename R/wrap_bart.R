@@ -79,58 +79,35 @@ rbart <- function(x_train,
 
      B_train_arr <- array(data = NA,
                           dim = c(nrow(x_train_scale),
-                                  nrow(knots)+1, # +1 here because is a natural spline
+                                  nrow(knots)+3, # +3 here because is a natural spline
                                   ncol(x_train_scale[,continuous_vars, drop = FALSE])))
 
      B_test_arr <- array(data = NA,
                           dim = c(nrow(x_test_scale),
-                                  nrow(knots)+1,  # +1 here because is a natural spline
+                                  nrow(knots)+3,  # +3 here because is a natural spline
                                   ncol(x_test_scale[,continuous_vars, drop = FALSE])))
 
      # Creating the natural B-spline for each predictor
      for(i in 1:length(continuous_vars)){
-             B_train_obj <- splines::ns(x = x_train_scale[,continuous_vars[i], drop = FALSE],knots = knots[,continuous_vars[i]],
+             B_train_obj <- splines::bs(x = x_train_scale[,continuous_vars[i], drop = FALSE],knots = knots[,continuous_vars[i]],
                                         intercept = FALSE,
                                         Boundary.knots = c(min_x[i],max_x[i]))
              B_train_arr[,,i] <- as.matrix(B_train_obj)
              B_test_arr[,,i] <- as.matrix(predict(B_train_obj,newx = x_test_scale[,continuous_vars[i], drop = FALSE]))
      }
 
-     # === Directly getting the Pnealised version over the basis function
-     #see (Eilers, 2010) and look for reference 26 in the text
-     #=====
+     # R-th difference order matrix
      if(dif_order!=0){
-
-             Z_train_arr <- array(data = NA,
-                                  dim = c(nrow(x_train_scale),
-                                          nrow(knots)+1-dif_order,
-                                          ncol(x_train_scale[,continuous_vars, drop = FALSE]))) # correcting the new dimension by P
-
-             Z_test_arr <- array(data = NA,
-                                 dim = c(nrow(x_test_scale),
-                                         nrow(knots)+1-dif_order,
-                                         ncol(x_test_scale[,continuous_vars, drop = FALSE])))# correcting the new dimension by P
-
-             D <- D_gen(p = ncol(B_train_arr[,,1]),n_dif = dif_order)
-
-             for(i in 1:length(continuous_vars)){
-                     # IN CASE WE WANT TO USE THE DIFFERENCE PENALISATION DIRECTLY OVER THE
-                     #BASIS FUNCTION
-                     Z_train_arr[,,i] <- B_train_arr[,,i]%*%crossprod(D,solve(tcrossprod(D)))
-                     Z_test_arr[,,i] <- B_test_arr[,,i]%*%crossprod(D,solve(tcrossprod(D)))
-             }
+        D <- D_gen(p = ncol(B_train_arr[,,1]),n_dif = dif_order)
      } else {
-
-             # Using original values for B
-             Z_train_arr <- B_train_arr
-             Z_test_arr <- B_test_arr
+        D <- diag(nrow = ncol(B_train_arr[,,1]))
      }
 
      # Scaling "y"
      if(scale_bool){
         y_scale <- normalize_bart(y = y,a = min_y,b = max_y)
-        tau_b_0 <- tau_b <- tau_mu <- 20*(4*n_tree*(kappa^2))
-        # tau_b_0 <- tau_b <- tau_mu <- 100
+        tau_b_0 <- tau_b <- tau_mu <- (4*n_tree*(kappa^2))
+        tau_b <- tau_mu <- 0.1
 
      } else {
         y_scale <- y
@@ -172,8 +149,9 @@ rbart <- function(x_train,
      bart_obj <- sbart(x_train_scale,
           y_scale,
           x_test_scale,
-          Z_train = Z_train_arr,
-          Z_test = Z_test_arr,
+          B_train = B_train_arr,
+          B_test = B_test_arr,
+          D = D,
           n_tree,
           n_mcmc,
           n_burn,

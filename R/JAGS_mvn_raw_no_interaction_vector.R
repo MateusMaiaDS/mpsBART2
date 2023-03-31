@@ -81,7 +81,7 @@ max_x <- x_max <- apply(as.matrix(x_train),2,max)
 
 
 # Getting the internal knots
-nIknots <- 50
+nIknots <- 10
 dif_order <- 0
 knots <- apply(x_train,
                2,

@@ -178,8 +178,8 @@ arma::mat bspline(arma::vec x,
 modelParam::modelParam(arma::mat x_train_,
                        arma::vec y_,
                        arma::mat x_test_,
-                       arma::cube Z_train_,
-                       arma::cube Z_test_,
+                       arma::cube B_train_,
+                       arma::cube B_test_,
                        int n_tree_,
                        double alpha_,
                        double beta_,
@@ -201,21 +201,21 @@ modelParam::modelParam(arma::mat x_train_,
         x_train = x_train_;
         y = y_;
         x_test = x_test_;
-        Z_train = Z_train_;
-        Z_test = Z_test_;
+        B_train = B_train_;
+        B_test = B_test_;
         n_tree = n_tree_;
-        p = Z_train_.n_cols;
-        d_var = Z_train_.n_slices;
+        p = B_train_.n_cols;
+        d_var = B_train_.n_slices;
         alpha = alpha_;
         beta = beta_;
         tau_mu = tau_mu_;
-        tau_b = arma::vec(Z_train_.n_slices,arma::fill::ones)*tau_b_;
+        tau_b = arma::vec(B_train_.n_slices,arma::fill::ones)*tau_b_;
         tau_b_intercept = tau_b_intercept_;
         tau = tau_;
         a_tau = a_tau_;
         d_tau = d_tau_;
         nu = nu_;
-        delta = arma::vec(Z_train_.n_slices,arma::fill::ones)*delta_;
+        delta = arma::vec(B_train_.n_slices,arma::fill::ones)*delta_;
         a_delta = a_delta_;
         d_delta = d_delta_;
         n_mcmc = n_mcmc_;
@@ -626,7 +626,7 @@ void grow(Node* tree, modelParam &data, arma::vec &curr_res){
         double acceptance = exp(new_tree_log_like - tree_log_like + log_transition_prob + tree_prior);
 
         // Keeping the new tree or not
-        if(rand_unif()<-acceptance){
+        if(rand_unif()< - acceptance){
                 // Do nothing just keep the new tree
         } else {
                 // Returning to the old values
@@ -739,9 +739,9 @@ void change(Node* tree, modelParam &data, arma::vec &curr_res){
 
         // Storing all the old loglikelihood from left
         double old_left_log_like = c_node->left->log_likelihood;
-        arma::cube old_left_z = c_node->left->Z;
-        arma::cube old_left_z_t = c_node->left->Z_t;
-        arma::cube old_left_z_test = c_node->left->Z_test;
+        arma::cube old_left_z = c_node->left->B;
+        arma::cube old_left_z_t = c_node->left->B_t;
+        arma::cube old_left_z_test = c_node->left->B_test;
         arma::mat old_left_z_t_ones = c_node->left->z_t_ones;
         arma::vec old_left_leaf_res = c_node->left->leaf_res;
 
@@ -754,9 +754,9 @@ void change(Node* tree, modelParam &data, arma::vec &curr_res){
 
         // Storing all of the old loglikelihood from right;
         double old_right_log_like = c_node->right->log_likelihood;
-        arma::cube old_right_z = c_node->right->Z;
-        arma::cube old_right_z_t = c_node->right->Z_t;
-        arma::cube old_right_z_test = c_node->right->Z_test;
+        arma::cube old_right_z = c_node->right->B;
+        arma::cube old_right_z_t = c_node->right->B_t;
+        arma::cube old_right_z_test = c_node->right->B_test;
         arma::mat old_right_z_t_ones = c_node->right->z_t_ones;
         arma::vec old_right_leaf_res = c_node->right->leaf_res;
 
@@ -856,9 +856,9 @@ void change(Node* tree, modelParam &data, arma::vec &curr_res){
                 c_node->upper = old_upper;
 
                 // Returning to the old ones
-                c_node->left->Z = old_left_z;
-                c_node->left->Z_t = old_left_z_t;
-                c_node->left->Z_test = old_left_z_test;
+                c_node->left->B = old_left_z;
+                c_node->left->B_t = old_left_z_t;
+                c_node->left->B_test = old_left_z_test;
                 c_node->left->z_t_ones = old_left_z_t_ones;
                 c_node->left->leaf_res = old_left_leaf_res;
 
@@ -869,9 +869,9 @@ void change(Node* tree, modelParam &data, arma::vec &curr_res){
                 c_node->left->test_index = old_left_test_index;
 
                 // Returning to the old ones
-                c_node->right->Z = old_right_z;
-                c_node->right->Z_t = old_right_z_t;
-                c_node->right->Z_test = old_right_z_test;
+                c_node->right->B = old_right_z;
+                c_node->right->B_t = old_right_z_t;
+                c_node->right->B_test = old_right_z_test;
                 c_node->right->z_t_ones = old_right_z_t_ones;
                 c_node->right->leaf_res = old_right_leaf_res;
 
@@ -904,9 +904,9 @@ void change(Node* tree, modelParam &data, arma::vec &curr_res){
                 c_node->upper = old_upper;
 
                 // Returning to the old ones
-                c_node->left->Z = old_left_z;
-                c_node->left->Z_t = old_left_z_t;
-                c_node->left->Z_test = old_left_z_test;
+                c_node->left->B = old_left_z;
+                c_node->left->B_t = old_left_z_t;
+                c_node->left->B_test = old_left_z_test;
                 c_node->left->z_t_ones = old_left_z_t_ones;
                 c_node->left->leaf_res = old_left_leaf_res;
 
@@ -918,9 +918,9 @@ void change(Node* tree, modelParam &data, arma::vec &curr_res){
                 c_node->left->test_index = old_left_test_index;
 
                 // Returning to the old ones
-                c_node->right->Z = old_right_z;
-                c_node->right->Z_t = old_right_z_t;
-                c_node->right->Z_test = old_right_z_test;
+                c_node->right->B = old_right_z;
+                c_node->right->B_t = old_right_z_t;
+                c_node->right->B_test = old_right_z_test;
                 c_node->right->z_t_ones = old_right_z_t_ones;
                 c_node->right->leaf_res = old_right_leaf_res;
 
@@ -1149,10 +1149,10 @@ void Node::splineNodeLogLike(modelParam& data, arma::vec &curr_res){
         }
 
         // Creating the B spline
-        arma::cube Z_(n_leaf,data.p,data.d_var);
-        arma::cube Z_t_(data.p,n_leaf,data.d_var);
+        arma::cube B_(n_leaf,data.p,data.d_var);
+        arma::cube B_t_(data.p,n_leaf,data.d_var);
 
-        arma::cube Z_test_(n_leaf_test,data.p,data.d_var);
+        arma::cube B_test_(n_leaf_test,data.p,data.d_var);
         arma::mat z_t_ones_(data.p,data.d_var);
         arma::vec leaf_res_ = arma::vec(n_leaf);
 
@@ -1162,35 +1162,35 @@ void Node::splineNodeLogLike(modelParam& data, arma::vec &curr_res){
         arma::mat res_cov(n_leaf,n_leaf,arma::fill::zeros);
         s_tau_beta_0 = (n_leaf + data.tau_b_intercept/data.tau);
 
-        // cout << "Z dimensions are: " << Z.n_rows << " " << Z.n_cols << " "<< Z.n_slices << endl;
-        // cout << "Z test dimensions are: " << Z_test.n_rows << " " << Z_test.n_cols << " "<< Z_test.n_slices << endl;
+        // cout << "B dimensions are: " << B.n_rows << " " << B.n_cols << " "<< B.n_slices << endl;
+        // cout << "B test dimensions are: " << B_test.n_rows << " " << B_test.n_cols << " "<< B_test.n_slices << endl;
 
 
         // Need to iterate a d-level
         for(int k = 0; k < data.d_var;k++){
-                // cout << "Error on Z_t" << endl;
+                // cout << "Error on B_t" << endl;
 
                 // Train elements
                 for(int i = 0; i < n_leaf;i++){
-                        for(int j = 0 ; j < data.Z_train.n_cols; j++){
-                                Z_(i,j,k) = data.Z_train(train_index[i],j,k);
+                        for(int j = 0 ; j < data.B_train.n_cols; j++){
+                                B_(i,j,k) = data.B_train(train_index[i],j,k);
                         }
                         leaf_res_(i) = curr_res(train_index[i]);
                 }
 
-                // cout << "Error on Z" << endl;
-                Z_t_.slice(k) = Z_.slice(k).t();
-                // cout << "Error on Z_ones" << endl;
+                // cout << "Error on B" << endl;
+                B_t_.slice(k) = B_.slice(k).t();
+                // cout << "Error on B_ones" << endl;
 
-                z_t_ones_.col(k) = Z_t_.slice(k)*ones_vec; // Col-sums from B - gonna use this again to sample beta_0 (remember is a row vector)
+                z_t_ones_.col(k) = B_t_.slice(k)*ones_vec; // Col-sums from B - gonna use this again to sample beta_0 (remember is a row vector)
                 // cout << "Error on res_cov" << endl;
 
-                res_cov = res_cov + (1/data.tau_b(k))*Z_.slice(k)*Z_t_.slice(k);
+                res_cov = res_cov + (1/data.tau_b(k))*B_.slice(k)*data.P_inv*B_t_.slice(k);
 
                 // Test elements
                 for(int i = 0 ; i < n_leaf_test;i++){
-                        for(int j = 0 ; j < data.Z_test.n_cols; j++){
-                                Z_test_(i,j,k) = data.Z_test(test_index[i],j,k);
+                        for(int j = 0 ; j < data.B_test.n_cols; j++){
+                                B_test_(i,j,k) = data.B_test(test_index[i],j,k);
                         }
                 }
 
@@ -1198,10 +1198,10 @@ void Node::splineNodeLogLike(modelParam& data, arma::vec &curr_res){
 
 
         // Sotring the new quantities for the node
-        Z = Z_;
-        Z_t = Z_t_;
+        B = B_;
+        B_t = B_t_;
         z_t_ones = z_t_ones_;
-        Z_test = Z_test_;
+        B_test = B_test_;
         leaf_res = leaf_res_;
 
         // Adding the remaining quantities
@@ -1237,12 +1237,12 @@ void updateBeta(Node* tree, modelParam &data){
                         continue;
                 }
 
-                // Calculating a cube with all {Z^(j)}\beta
-                // cout << "error in Z_j_beta" << endl;
-                arma::mat Z_j_beta(t_nodes[i]->n_leaf,data.d_var);
-                // cout << "Dimensions of Z are: " << t_nodes[i]->Z.n_rows << " " <<  t_nodes[i]->Z.n_cols << " " <<  t_nodes[i]->Z.n_slices << endl;
+                // Calculating a cube with all {B^(j)}\beta
+                // cout << "error in B_j_beta" << endl;
+                arma::mat B_j_beta(t_nodes[i]->n_leaf,data.d_var);
+                // cout << "Dimensions of B are: " << t_nodes[i]->B.n_rows << " " <<  t_nodes[i]->B.n_cols << " " <<  t_nodes[i]->B.n_slices << endl;
                 for(int k = 0; k<data.d_var;k++){
-                        Z_j_beta.col(k) = t_nodes[i]->Z.slice(k)*t_nodes[i]->betas.col(k);
+                        B_j_beta.col(k) = t_nodes[i]->B.slice(k)*t_nodes[i]->betas.col(k);
                 }
 
                 // cout << "error in Beta sampling" << endl;
@@ -1250,8 +1250,8 @@ void updateBeta(Node* tree, modelParam &data){
                 // Iterating ove each predictor
                 for(int j=0;j<data.d_var;j++){
                         // Calculating elements exclusive to each predictor
-                        arma::mat aux_precision_inv = arma::inv_sympd(t_nodes[i]->Z_t.slice(j)*t_nodes[i]->Z.slice(j)+(data.tau_b(j)/data.tau)*aux_diag);
-                        arma::mat beta_mean = aux_precision_inv*(t_nodes[i]->Z_t.slice(j)*t_nodes[i]->leaf_res-t_nodes[i]->Z_t.slice(j)*(t_nodes[i]->beta_zero+sum_exclude_col(Z_j_beta,j)));
+                        arma::mat aux_precision_inv = arma::inv_sympd(t_nodes[i]->B_t.slice(j)*t_nodes[i]->B.slice(j)+(data.tau_b(j)/data.tau)*aux_diag);
+                        arma::mat beta_mean = aux_precision_inv*(t_nodes[i]->B_t.slice(j)*t_nodes[i]->leaf_res-t_nodes[i]->B_t.slice(j)*(t_nodes[i]->beta_zero+sum_exclude_col(B_j_beta,j)));
                         arma::mat beta_cov = (1/data.tau)*aux_precision_inv;
 
                         // cout << "Error sample BETA" << endl;
@@ -1314,10 +1314,10 @@ void getPredictions(Node* tree,
 
                 // Calculating the sum over multiple predictors
                 arma::vec betas_b_sum(t_nodes[i]->n_leaf,arma::fill::zeros);
-                // cout << "Dimensions of Z are " << t_nodes[i] -> Z.n_rows << " " << t_nodes[i]->Z.n_cols << " " << t_nodes[i]->Z.n_slices << endl;
+                // cout << "Dimensions of B are " << t_nodes[i] -> B.n_rows << " " << t_nodes[i]->B.n_cols << " " << t_nodes[i]->B.n_slices << endl;
 
                 for(int j = 0;j<data.d_var;j++){
-                        betas_b_sum = betas_b_sum + t_nodes[i]->Z.slice(j)*t_nodes[i]->betas.col(j);
+                        betas_b_sum = betas_b_sum + t_nodes[i]->B.slice(j)*t_nodes[i]->betas.col(j);
                 }
 
                 // Getting the vector of prediction for the betas and b for this node
@@ -1344,10 +1344,10 @@ void getPredictions(Node* tree,
 
 
                 // Calculating the sum over multiple predictors
-                arma::vec betas_b_sum_test(t_nodes[i]->Z_test.n_rows,arma::fill::zeros);
+                arma::vec betas_b_sum_test(t_nodes[i]->B_test.n_rows,arma::fill::zeros);
 
                 for(int j = 0;j<data.d_var;j++){
-                        betas_b_sum_test = betas_b_sum + t_nodes[i]->Z_test.slice(j)*t_nodes[i]->betas.col(j);
+                        betas_b_sum_test = betas_b_sum + t_nodes[i]->B_test.slice(j)*t_nodes[i]->betas.col(j);
                 }
 
 
@@ -1406,7 +1406,7 @@ void updateTauB(Forest all_trees,
                         }
 
                         for(int j = 0; j < data.d_var;j++){
-                                beta_sq_sum_total(j) = beta_sq_sum_total(j) + arma::accu(arma::square(t_nodes[i]->betas.col(j)));
+                                beta_sq_sum_total(j) = beta_sq_sum_total(j) + arma::as_scalar(t_nodes[i]->betas.col(j).t()*data.P*t_nodes[i]->betas.col(j));
                                 beta_count_total(j) = beta_count_total(j) + data.p;
                         }
                 }
@@ -1473,8 +1473,9 @@ void updateTauBintercept(Forest all_trees,
 Rcpp::List sbart(arma::mat x_train,
           arma::vec y_train,
           arma::mat x_test,
-          arma::cube Z_train,
-          arma::cube Z_test,
+          arma::cube B_train,
+          arma::cube B_test,
+          arma::mat D,
           int n_tree,
           int n_mcmc,
           int n_burn,
@@ -1490,14 +1491,12 @@ Rcpp::List sbart(arma::mat x_train,
         // Posterior counter
         int curr = 0;
 
-        // cout << "Error ModelParam init" << endl;
-
         // Creating the structu object
         modelParam data(x_train,
                         y_train,
                         x_test,
-                        Z_train,
-                        Z_test,
+                        B_train,
+                        B_test,
                         n_tree,
                         alpha,
                         beta,
@@ -1516,7 +1515,10 @@ Rcpp::List sbart(arma::mat x_train,
                         p_sample,
                         p_sample_levels);
 
-        // cout << "Error ModelParam ok" << endl;
+        // Getting the Penalisation difference matrix
+        data.P = D.t()*D;
+
+        data.P_inv = arma::inv(data.P+arma::eye(data.P.n_rows,data.P.n_cols)*1e-3);
 
         // Getting the n_post
         int n_post = n_mcmc - n_burn;

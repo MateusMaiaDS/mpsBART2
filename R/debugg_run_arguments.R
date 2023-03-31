@@ -1,7 +1,7 @@
 x_train <- x
 x_test <- x
 y <- y
-n_tree = 200
+n_tree = 20
 n_mcmc = 2000
 n_burn = 500
 alpha = 0.95
