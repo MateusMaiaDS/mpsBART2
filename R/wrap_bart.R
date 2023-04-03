@@ -107,7 +107,7 @@ rbart <- function(x_train,
      if(scale_bool){
         y_scale <- normalize_bart(y = y,a = min_y,b = max_y)
         tau_b_0 <- tau_b <- tau_mu <- (4*n_tree*(kappa^2))
-        tau_b <- tau_mu <- 0.1
+        # tau_b <- tau_mu <- 0.1
 
      } else {
         y_scale <- y
@@ -129,8 +129,8 @@ rbart <- function(x_train,
 
      # Call the bart function
      tau_init <- nsigma^(-2)
-     tau_init <- 1
      mu_init <- mean(y_scale)
+     tau_init <- 0.01
 
      # Creating the vector that stores all trees
      all_tree_post <- vector("list",length = round(n_mcmc-n_burn))

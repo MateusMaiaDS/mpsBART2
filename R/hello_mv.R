@@ -5,23 +5,23 @@ Rcpp::sourceCpp("src/mpsBART.cpp")
 source("R/other_functions.R")
 source("R/wrap_bart.R")
 source("R/bayesian_simulation.R")
-n_ <- 250
+n_ <- 200
 set.seed(42)
 
 # Simulation 1
 fried_sim <- mlbench::mlbench.friedman1(n = n_,sd = 0.01)
 friedman_no_interaction <- function (n, sd = 1)
 {
-     x <- matrix(runif(4 * n), ncol = 4)
-     y <- 10 * sin(pi * x[, 1] )
-     y <- y + 20 * (x[, 2] - 0.5)^2 + 10 * x[, 3] + 5 * x[, 4]
-     if (sd > 0) {
-          y <- y + rnorm(n, sd = sd)
-     }
-     list(x = x, y = y)
+        x <- matrix(runif(4 * n), ncol = 4)
+        y <- 10 * sin(pi * x[, 1] )
+        y <- y + 20 * (x[, 2] - 0.5)^2 + 10 * x[, 3] + 5 * x[, 4]
+        if (sd > 0) {
+                y <- y + rnorm(n, sd = sd)
+        }
+        list(x = x, y = y)
 }
 
-sd_ <- 5
+sd_ <- 1
 fried_sim <- friedman_no_interaction(n = n_,sd = sd_)
 fried_sim_new_sample <- friedman_no_interaction(n = n_,sd = sd_)
 
@@ -36,9 +36,9 @@ x_test <- as.data.frame(x_new)
 
 # Testing the mpsBART
 bart_test <- rbart(x_train = x,y = unlist(c(y)),x_test = x_test,
-                   n_tree = 1,n_mcmc = 2500,alpha = 0.95,dif_order = 0,
-                   beta = 2,nIknots = 10,delta = 1,
-                   n_burn = 500,scale_bool = FALSE)
+                   n_tree = 2,n_mcmc = 3500,alpha = 0.95,dif_order = 1,
+                   beta = 2,nIknots = 20,delta = 1,
+                   n_burn = 1000,scale_bool = TRUE)
 
 
 # Running BART
@@ -62,4 +62,4 @@ rmse(x = fried_sim_new_sample$y,y = rowMeans(bart_test$y_hat_test))
 
 par(mfrow=c(1,1))
 plot(bartmod$yhat.test.mean,rowMeans(bart_test$y_hat_test))
-
+plot(bartmod$yhat.train.mean,rowMeans(bart_test$y_hat))

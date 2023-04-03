@@ -28,7 +28,7 @@ library(splines) # Useful for creating the B-spline basis functions
 
 # Some R code to simulate data from the above model
 set.seed(42)
-n_ <- 100 # Number of observations
+n_ <- 500 # Number of observations
 
 # Simulation 2
 
@@ -176,25 +176,30 @@ model_code <- "
 
    for (t in 1:N) {
 
-     mean_y[t] = inprod(B_one[t,1:N_knots],beta_one[1:N_knots]) + inprod(B_two[t,1:N_knots],beta_two[1:N_knots]) + inprod(B_three[t,1:N_knots],beta_three[1:N_knots]) + inprod(B_four[t,1:N_knots],beta_four[1:N_knots]) #+ inprod(B_five[t,1:N_knots],beta_five[1:N_knots])
+     mean_y[t] = inprod(B_one[t,1:N_knots],beta_one_one[1:N_knots]) + inprod(B_one[t,1:N_knots],beta_one_two[1:N_knots]) + inprod(B_two[t,1:N_knots],beta_two_one[1:N_knots]) + inprod(B_two[t,1:N_knots],beta_two_two[1:N_knots]) + inprod(B_three[t,1:N_knots],beta_three_one[1:N_knots]) + inprod(B_three[t,1:N_knots],beta_three_two[1:N_knots]) + inprod(B_four[t,1:N_knots],beta_four_one[1:N_knots]) + inprod(B_four[t,1:N_knots],beta_four_two[1:N_knots])
 
-     y[t] ~ dnorm(sum(mean_y[t]) + gamma, tau)
+     y[t] ~ dnorm(sum(mean_y[t]) + gamma_one + gamma_two, tau)
    }
 
 
 
     # RW prior on beta
-    gamma ~ dnorm(0,tau_b_0)
+    gamma_one ~ dnorm(0,tau_b_0)
+    gamma_two ~ dnorm(0,tau_b_0)
 
-    beta_one[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[1]*P)
-    beta_two[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[2]*P)
-    beta_three[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[3]*P)
-    beta_four[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[4]*P)
-    # beta_five[i] ~ dnorm(rep(0,N_knots),tau_b[5])
+    beta_one_one[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[1]*P)
+    beta_two_one[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[2]*P)
+    beta_three_one[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[3]*P)
+    beta_four_one[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[4]*P)
+
+    beta_one_two[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[5]*P)
+    beta_two_two[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[6]*P)
+    beta_three_two[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[7]*P)
+    beta_four_two[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[8]*P)
 
     # Priors on beta values
     tau ~ dgamma(a_tau, d_tau)
-    for(k in 1:4){
+    for(k in 1:8){
          tau_b[k] ~ dgamma(0.5 * nu, 0.5 * delta[k] * nu)
          delta[k] ~ dgamma(a_delta, d_delta)
     }
@@ -209,10 +214,8 @@ model_data <- list(N = nrow(B_train_arr[,,1]),
                    B_two = B_train_arr[,,2],
                    B_three = B_train_arr[,,3],
                    B_four = B_train_arr[,,4],
-                   # B_five = Z_train_arr[,,5],
                    N_knots = ncol(B_train_arr[,,1]),
                    P = P,
-                   # diag_ = diag(nrow = ncol(B_train_arr[,,1])),
                    a_tau = a_tau,
                    d_tau = d_tau,
                    a_delta = 0.0001,
@@ -221,7 +224,7 @@ model_data <- list(N = nrow(B_train_arr[,,1]),
                    nu  = 2)
 
 # Choose the parameters to watch
-model_parameters <- c("beta_one","beta_two","beta_three","beta_four", "tau", "tau_b","delta","gamma")
+model_parameters <- c("beta_one_one","beta_two_one","beta_three_one","beta_four_one","beta_one_two","beta_two_two","beta_three_two","beta_four_two", "tau", "tau_b","delta","gamma_one","gamma_two")
 
 # Run the model - can be slow
 model_run <- jags(
@@ -236,26 +239,42 @@ model_run <- jags(
 # print(model_run)
 
 # Get the posterior betas and 50% CI
-beta_post_one <- model_run$BUGSoutput$sims.list$beta_one
-beta_quantile_one <- apply(beta_post_one, 2, quantile, prob = c(0.25, 0.5, 0.75))
-beta_post_two <- model_run$BUGSoutput$sims.list$beta_two
-beta_quantile_two <- apply(beta_post_two, 2, quantile, prob = c(0.25, 0.5, 0.75))
-beta_post_three <- model_run$BUGSoutput$sims.list$beta_three
-beta_quantile_three <- apply(beta_post_three, 2, quantile, prob = c(0.25, 0.5, 0.75))
-beta_post_four <- model_run$BUGSoutput$sims.list$beta_four
-beta_quantile_four <- apply(beta_post_four, 2, quantile, prob = c(0.25, 0.5, 0.75))
+beta_post_one_one <- model_run$BUGSoutput$sims.list$beta_one_one
+beta_quantile_one_one <- apply(beta_post_one_one, 2, quantile, prob = c(0.25, 0.5, 0.75))
+beta_post_two_one <- model_run$BUGSoutput$sims.list$beta_two_one
+beta_quantile_two_one <- apply(beta_post_two_one, 2, quantile, prob = c(0.25, 0.5, 0.75))
+beta_post_three_one <- model_run$BUGSoutput$sims.list$beta_three_one
+beta_quantile_three_one <- apply(beta_post_three_one, 2, quantile, prob = c(0.25, 0.5, 0.75))
+beta_post_four_one <- model_run$BUGSoutput$sims.list$beta_four_one
+beta_quantile_four_one <- apply(beta_post_four_one, 2, quantile, prob = c(0.25, 0.5, 0.75))
+
+beta_post_one_two <- model_run$BUGSoutput$sims.list$beta_one_two
+beta_quantile_one_two <- apply(beta_post_one_two, 2, quantile, prob = c(0.25, 0.5, 0.75))
+beta_post_two_two <- model_run$BUGSoutput$sims.list$beta_two_two
+beta_quantile_two_two <- apply(beta_post_two_two, 2, quantile, prob = c(0.25, 0.5, 0.75))
+beta_post_three_two <- model_run$BUGSoutput$sims.list$beta_three_two
+beta_quantile_three_two <- apply(beta_post_three_two, 2, quantile, prob = c(0.25, 0.5, 0.75))
+beta_post_four_two <- model_run$BUGSoutput$sims.list$beta_four_two
+beta_quantile_four_two <- apply(beta_post_four_two, 2, quantile, prob = c(0.25, 0.5, 0.75))
+
 # beta_post_five <- model_run$BUGSoutput$sims.list$beta_five
 # beta_quantile_five <- apply(beta_post_five, 2, quantile, prob = c(0.25, 0.5, 0.75))
-gamma_post <- model_run$BUGSoutput$sims.list$gamma
-gamma_quantile <- apply(gamma_post, 2, quantile, prob = c(0.25, 0.5, 0.75))
+gamma_post_one <- model_run$BUGSoutput$sims.list$gamma_one
+gamma_quantile_one <- apply(gamma_post_one, 2, quantile, prob = c(0.25, 0.5, 0.75))
+gamma_post_two <- model_run$BUGSoutput$sims.list$gamma_two
+gamma_quantile_two <- apply(gamma_post_two, 2, quantile, prob = c(0.25, 0.5, 0.75))
 
 
 # New prediction
 # Z_test <- predict(Z_train,x_test)
-y_train_hat <- B_train_arr[,,1]%*%beta_quantile_one[2,] + B_train_arr[,,2]%*%beta_quantile_two[2,]+
-     B_train_arr[,,3]%*%beta_quantile_three[2,] + B_train_arr[,,4]%*%beta_quantile_four[2,]+
+y_train_hat <- B_train_arr[,,1]%*%beta_quantile_one_one[2,] + B_train_arr[,,2]%*%beta_quantile_two_one[2,]+
+     B_train_arr[,,3]%*%beta_quantile_three_one[2,] + B_train_arr[,,4]%*%beta_quantile_four_one[2,]+
      # Z_train_arr[,,5]%*%beta_quantile_five[2,] +
-     gamma_quantile[2,]
+     gamma_quantile_one[2,] +
+     B_train_arr[,,1]%*%beta_quantile_one_two[2,] + B_train_arr[,,2]%*%beta_quantile_two_two[2,]+
+     B_train_arr[,,3]%*%beta_quantile_three_two[2,] + B_train_arr[,,4]%*%beta_quantile_four_two[2,]+
+     # Z_train_arr[,,5]%*%beta_quantile_five[2,] +
+     gamma_quantile_two[2,]
 
 
 # Running BART
@@ -274,10 +293,12 @@ plot(bartmod$yhat.train.mean,y, main = "BART", xlab = "BART pred", ylab = "y")
 
 
 # Calculations in the splines model
-y_test_hat <- B_test_arr[,,1]%*%beta_quantile_one[2,] + B_test_arr[,,2]%*%beta_quantile_two[2,]+
-     B_test_arr[,,3]%*%beta_quantile_three[2,] + B_test_arr[,,4]%*%beta_quantile_four[2,]+
-     # B_test_arr[,,5]%*%beta_quantile_five[2,] +
-     gamma_quantile[2,]
+y_test_hat <- B_test_arr[,,1]%*%beta_quantile_one_one[2,] + B_test_arr[,,2]%*%beta_quantile_two_one[2,]+
+     B_test_arr[,,3]%*%beta_quantile_three_one[2,] + B_test_arr[,,4]%*%beta_quantile_four_one[2,]+
+     gamma_quantile_one[2,] +
+     B_test_arr[,,1]%*%beta_quantile_one_two[2,] + B_test_arr[,,2]%*%beta_quantile_two_two[2,]+
+     B_test_arr[,,3]%*%beta_quantile_three_two[2,] + B_test_arr[,,4]%*%beta_quantile_four_two[2,]+
+     gamma_quantile_two[2,]
 
 y_bart_hat <- colMeans(predict(bartmod,new_sample$x))
 

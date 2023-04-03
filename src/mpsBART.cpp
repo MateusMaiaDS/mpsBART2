@@ -246,7 +246,7 @@ Node::Node(modelParam &data){
         }
 
 
-        var_split = 0;
+        var_split = -1;
         var_split_rule = 0.0;
         lower = 0.0;
         upper = 1.0;
@@ -1250,8 +1250,8 @@ void updateBeta(Node* tree, modelParam &data){
                 // Iterating ove each predictor
                 for(int j=0;j<data.d_var;j++){
                         // Calculating elements exclusive to each predictor
-                        arma::mat aux_precision_inv = arma::inv_sympd(t_nodes[i]->B_t.slice(j)*t_nodes[i]->B.slice(j)+(data.tau_b(j)/data.tau)*aux_diag);
-                        arma::mat beta_mean = aux_precision_inv*(t_nodes[i]->B_t.slice(j)*t_nodes[i]->leaf_res-t_nodes[i]->B_t.slice(j)*(t_nodes[i]->beta_zero+sum_exclude_col(B_j_beta,j)));
+                        arma::mat aux_precision_inv = arma::inv(t_nodes[i]->B_t.slice(j)*t_nodes[i]->B.slice(j)+(data.tau_b(j)/data.tau)*data.P);
+                        arma::mat beta_mean = aux_precision_inv*(t_nodes[i]->B_t.slice(j)*t_nodes[i]->leaf_res - t_nodes[i]->B_t.slice(j)*(t_nodes[i]->beta_zero+sum_exclude_col(B_j_beta,j)));
                         arma::mat beta_cov = (1/data.tau)*aux_precision_inv;
 
                         // cout << "Error sample BETA" << endl;
@@ -1280,8 +1280,6 @@ void updateGamma(Node* tree, modelParam &data){
                 // cout << "Error mean" << endl;
                 double s_gamma = t_nodes[i]->n_leaf+(data.tau_b_intercept/data.tau);
                 double sum_beta_z_one = 0;
-
-
 
                 for(int j = 0; j<data.d_var;j++){
                         sum_beta_z_one = sum_beta_z_one + arma::as_scalar(t_nodes[i]->betas.col(j).t()*(t_nodes[i]->z_t_ones.col(j)));
@@ -1347,7 +1345,7 @@ void getPredictions(Node* tree,
                 arma::vec betas_b_sum_test(t_nodes[i]->B_test.n_rows,arma::fill::zeros);
 
                 for(int j = 0;j<data.d_var;j++){
-                        betas_b_sum_test = betas_b_sum + t_nodes[i]->B_test.slice(j)*t_nodes[i]->betas.col(j);
+                        betas_b_sum_test = betas_b_sum_test + t_nodes[i]->B_test.slice(j)*t_nodes[i]->betas.col(j);
                 }
 
 
@@ -1401,7 +1399,7 @@ void updateTauB(Forest all_trees,
                 for(int i = 0; i< t_nodes.size(); i++ ){
 
                         // Simple error test
-                        if(t_nodes[i]->betas.size()<1) {
+                        if(t_nodes[i]->betas.n_rows<1) {
                                 continue;
                         }
 
@@ -1414,8 +1412,10 @@ void updateTauB(Forest all_trees,
         }
 
         for(int j = 0; j < data.d_var; j++){
+                // cout << " " << beta_count_total << " ";
                 data.tau_b(j) = R::rgamma((0.5*beta_count_total(j) + 0.5*data.nu),1/(0.5*beta_sq_sum_total(j)+0.5*data.delta(j)*data.nu));
         }
+        // cout << endl;
         return;
 
 }
@@ -1518,7 +1518,7 @@ Rcpp::List sbart(arma::mat x_train,
         // Getting the Penalisation difference matrix
         data.P = D.t()*D;
 
-        data.P_inv = arma::inv(data.P+arma::eye(data.P.n_rows,data.P.n_cols)*1e-3);
+        data.P_inv = arma::inv(data.P+arma::eye(data.P.n_rows,data.P.n_cols)*1e-8);
 
         // Getting the n_post
         int n_post = n_mcmc - n_burn;
@@ -1629,7 +1629,7 @@ Rcpp::List sbart(arma::mat x_train,
 
                 // Updating the Tau
                 // std::cout << "Error TauB: " << data.tau_b << endl;
-                // updateTauB(all_forest,data);
+                updateTauB(all_forest,data);
                 // std::cout << "Error Delta: " << data.delta << endl;
                 updateDelta(data);
                 // std::cout << "Error Tau: " << data.tau<< endl;
