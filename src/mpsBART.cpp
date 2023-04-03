@@ -1516,9 +1516,9 @@ Rcpp::List sbart(arma::mat x_train,
                         p_sample_levels);
 
         // Getting the Penalisation difference matrix
-        data.P = D.t()*D;
+        data.P = D.t()*D+arma::eye(D.n_cols,D.n_cols)*1e-8;
 
-        data.P_inv = arma::inv(data.P+arma::eye(data.P.n_rows,data.P.n_cols)*1e-8);
+        data.P_inv = arma::inv(data.P);
 
         // Getting the n_post
         int n_post = n_mcmc - n_burn;
@@ -1528,7 +1528,7 @@ Rcpp::List sbart(arma::mat x_train,
         arma::mat y_test_hat_post = arma::zeros<arma::mat>(data.x_test.n_rows,n_post);
         arma::cube all_tree_post(y_train.size(),n_tree,n_post,arma::fill::zeros);
         arma::vec tau_post = arma::zeros<arma::vec>(n_post);
-        arma::mat tau_b_post = arma::mat(data.d_var,n_post);
+        arma::mat tau_b_post = arma::mat(data.d_var,n_post,arma::fill::zeros);
         arma::vec tau_b_post_intercept = arma::zeros<arma::vec>(n_post);
 
 
@@ -1614,7 +1614,6 @@ Rcpp::List sbart(arma::mat x_train,
                         getPredictions(all_forest.trees[t],data,prediction_train,prediction_test);
 
 
-
                         // Updating the partial pred
                         partial_pred = partial_pred - tree_fits_store.col(t) + prediction_train;
 
@@ -1633,7 +1632,8 @@ Rcpp::List sbart(arma::mat x_train,
                 // std::cout << "Error Delta: " << data.delta << endl;
                 updateDelta(data);
                 // std::cout << "Error Tau: " << data.tau<< endl;
-                updateTau(partial_pred, data);
+                updateTau(prediction_train_sum, data);
+
                 // std::cout << " All good " << endl;
                 if(i >= n_burn){
                         // Storing the predictions

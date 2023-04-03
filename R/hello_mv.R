@@ -36,9 +36,11 @@ x_test <- as.data.frame(x_new)
 
 # Testing the mpsBART
 bart_test <- rbart(x_train = x,y = unlist(c(y)),x_test = x_test,
-                   n_tree = 2,n_mcmc = 3500,alpha = 0.95,dif_order = 1,
-                   beta = 2,nIknots = 20,delta = 1,
-                   n_burn = 1000,scale_bool = TRUE)
+                   n_tree = 10,n_mcmc = 2500,alpha = 0.95,
+                   dif_order = 1,
+                   beta = 2,nIknots = 50,delta = 1,
+                   df = 3,sigquant = 0.9,
+                   n_burn = 500,scale_bool = TRUE)
 
 
 # Running BART
@@ -63,3 +65,4 @@ rmse(x = fried_sim_new_sample$y,y = rowMeans(bart_test$y_hat_test))
 par(mfrow=c(1,1))
 plot(bartmod$yhat.test.mean,rowMeans(bart_test$y_hat_test))
 plot(bartmod$yhat.train.mean,rowMeans(bart_test$y_hat))
+

@@ -28,7 +28,7 @@ library(splines) # Useful for creating the B-spline basis functions
 
 # Some R code to simulate data from the above model
 set.seed(42)
-n_ <- 500 # Number of observations
+n_ <- 250 # Number of observations
 
 # Simulation 2
 
@@ -81,8 +81,8 @@ max_x <- x_max <- apply(as.matrix(x_train),2,max)
 
 
 # Getting the internal knots
-nIknots <- 10
-dif_order <- 0
+nIknots <- 30
+dif_order <- 2
 knots <- apply(x_train,
                2,
                function(x){quantile(x,seq(0,1,length.out = nIknots+2))[-c(1,nIknots+2)]})
@@ -192,14 +192,14 @@ model_code <- "
     beta_three_one[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[3]*P)
     beta_four_one[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[4]*P)
 
-    beta_one_two[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[5]*P)
-    beta_two_two[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[6]*P)
-    beta_three_two[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[7]*P)
-    beta_four_two[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[8]*P)
+    beta_one_two[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[1]*P)
+    beta_two_two[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[2]*P)
+    beta_three_two[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[3]*P)
+    beta_four_two[1:N_knots] ~ dmnorm(rep(0,N_knots),tau_b[4]*P)
 
     # Priors on beta values
     tau ~ dgamma(a_tau, d_tau)
-    for(k in 1:8){
+    for(k in 1:4){
          tau_b[k] ~ dgamma(0.5 * nu, 0.5 * delta[k] * nu)
          delta[k] ~ dgamma(a_delta, d_delta)
     }
