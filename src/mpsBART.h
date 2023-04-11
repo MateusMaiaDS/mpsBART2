@@ -110,7 +110,7 @@ struct Node {
      arma::cube B;
      arma::cube B_t;
      arma::cube B_test;
-     arma::mat z_t_ones;
+     arma::mat b_t_ones;
      arma::vec leaf_res;
 
      // Displaying and check nodes

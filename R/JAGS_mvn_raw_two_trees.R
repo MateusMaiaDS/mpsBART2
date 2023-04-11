@@ -28,7 +28,7 @@ library(splines) # Useful for creating the B-spline basis functions
 
 # Some R code to simulate data from the above model
 set.seed(42)
-n_ <- 250 # Number of observations
+n_ <- 100 # Number of observations
 
 # Simulation 2
 
@@ -44,7 +44,7 @@ no_interaction_friedman <- function (n, sd = 1)
 }
 
 # Simulation 1
-sd_ <- 0.1
+sd_ <- 1
 fried_sim <- no_interaction_friedman(n = n_,sd = sd_)
 x <- fried_sim$x
 x_new <- x
@@ -81,8 +81,8 @@ max_x <- x_max <- apply(as.matrix(x_train),2,max)
 
 
 # Getting the internal knots
-nIknots <- 30
-dif_order <- 2
+nIknots <- 10
+dif_order <- 0
 knots <- apply(x_train,
                2,
                function(x){quantile(x,seq(0,1,length.out = nIknots+2))[-c(1,nIknots+2)]})
@@ -311,3 +311,7 @@ plot(x = y_bart_hat,y = new_sample$y, main = "test BART")
 par(mfrow=c(1,1))
 plot(x = y_bart_hat,y = y_test_hat, main = "test BART")
 
+# Getting outpputs
+model_run$BUGSoutput$mean$tau_b
+model_run$BUGSoutput$mean$delta
+model_run$BUGSoutput$mean$tau

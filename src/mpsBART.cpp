@@ -36,7 +36,7 @@ double log_dmvn(arma::vec& x, arma::mat& Sigma){
 arma::mat sum_exclude_col(arma::mat mat, int exclude_int){
 
         // Setting the sum matrix
-        arma::mat m(mat.n_rows,1);
+        arma::mat m(mat.n_rows,1,arma::fill::zeros);
 
         if(exclude_int==0){
                 m = sum(mat.cols(1,mat.n_cols-1),1);
@@ -260,7 +260,7 @@ Node::Node(modelParam &data){
 
 
         // Initialising all the parameters
-        betas = arma::mat(data.p,data.d_var,arma::fill::zeros);
+        betas = arma::mat(data.p,data.d_var,arma::fill::ones);
 
 
 }
@@ -626,8 +626,9 @@ void grow(Node* tree, modelParam &data, arma::vec &curr_res){
         double acceptance = exp(new_tree_log_like - tree_log_like + log_transition_prob + tree_prior);
 
         // Keeping the new tree or not
-        if(rand_unif()< - acceptance){
+        if(rand_unif()< acceptance){
                 // Do nothing just keep the new tree
+                // cout << " ACCEPTED" << endl;
         } else {
                 // Returning to the old values
                 g_node->var_split = old_var_split;
@@ -739,10 +740,10 @@ void change(Node* tree, modelParam &data, arma::vec &curr_res){
 
         // Storing all the old loglikelihood from left
         double old_left_log_like = c_node->left->log_likelihood;
-        arma::cube old_left_z = c_node->left->B;
-        arma::cube old_left_z_t = c_node->left->B_t;
-        arma::cube old_left_z_test = c_node->left->B_test;
-        arma::mat old_left_z_t_ones = c_node->left->z_t_ones;
+        arma::cube old_left_b = c_node->left->B;
+        arma::cube old_left_b_t = c_node->left->B_t;
+        arma::cube old_left_b_test = c_node->left->B_test;
+        arma::mat old_left_b_t_ones = c_node->left->b_t_ones;
         arma::vec old_left_leaf_res = c_node->left->leaf_res;
 
 
@@ -754,10 +755,10 @@ void change(Node* tree, modelParam &data, arma::vec &curr_res){
 
         // Storing all of the old loglikelihood from right;
         double old_right_log_like = c_node->right->log_likelihood;
-        arma::cube old_right_z = c_node->right->B;
-        arma::cube old_right_z_t = c_node->right->B_t;
-        arma::cube old_right_z_test = c_node->right->B_test;
-        arma::mat old_right_z_t_ones = c_node->right->z_t_ones;
+        arma::cube old_right_b = c_node->right->B;
+        arma::cube old_right_b_t = c_node->right->B_t;
+        arma::cube old_right_b_test = c_node->right->B_test;
+        arma::mat old_right_b_t_ones = c_node->right->b_t_ones;
         arma::vec old_right_leaf_res = c_node->right->leaf_res;
 
 
@@ -856,10 +857,10 @@ void change(Node* tree, modelParam &data, arma::vec &curr_res){
                 c_node->upper = old_upper;
 
                 // Returning to the old ones
-                c_node->left->B = old_left_z;
-                c_node->left->B_t = old_left_z_t;
-                c_node->left->B_test = old_left_z_test;
-                c_node->left->z_t_ones = old_left_z_t_ones;
+                c_node->left->B = old_left_b;
+                c_node->left->B_t = old_left_b_t;
+                c_node->left->B_test = old_left_b_test;
+                c_node->left->b_t_ones = old_left_b_t_ones;
                 c_node->left->leaf_res = old_left_leaf_res;
 
                 c_node->left->n_leaf = old_left_n_leaf;
@@ -869,10 +870,10 @@ void change(Node* tree, modelParam &data, arma::vec &curr_res){
                 c_node->left->test_index = old_left_test_index;
 
                 // Returning to the old ones
-                c_node->right->B = old_right_z;
-                c_node->right->B_t = old_right_z_t;
-                c_node->right->B_test = old_right_z_test;
-                c_node->right->z_t_ones = old_right_z_t_ones;
+                c_node->right->B = old_right_b;
+                c_node->right->B_t = old_right_b_t;
+                c_node->right->B_test = old_right_b_test;
+                c_node->right->b_t_ones = old_right_b_t_ones;
                 c_node->right->leaf_res = old_right_leaf_res;
 
                 c_node->right->n_leaf = old_right_n_leaf;
@@ -904,10 +905,10 @@ void change(Node* tree, modelParam &data, arma::vec &curr_res){
                 c_node->upper = old_upper;
 
                 // Returning to the old ones
-                c_node->left->B = old_left_z;
-                c_node->left->B_t = old_left_z_t;
-                c_node->left->B_test = old_left_z_test;
-                c_node->left->z_t_ones = old_left_z_t_ones;
+                c_node->left->B = old_left_b;
+                c_node->left->B_t = old_left_b_t;
+                c_node->left->B_test = old_left_b_test;
+                c_node->left->b_t_ones = old_left_b_t_ones;
                 c_node->left->leaf_res = old_left_leaf_res;
 
 
@@ -918,10 +919,10 @@ void change(Node* tree, modelParam &data, arma::vec &curr_res){
                 c_node->left->test_index = old_left_test_index;
 
                 // Returning to the old ones
-                c_node->right->B = old_right_z;
-                c_node->right->B_t = old_right_z_t;
-                c_node->right->B_test = old_right_z_test;
-                c_node->right->z_t_ones = old_right_z_t_ones;
+                c_node->right->B = old_right_b;
+                c_node->right->B_t = old_right_b_t;
+                c_node->right->B_test = old_right_b_test;
+                c_node->right->b_t_ones = old_right_b_t_ones;
                 c_node->right->leaf_res = old_right_leaf_res;
 
                 c_node->right->n_leaf = old_right_n_leaf;
@@ -1153,8 +1154,8 @@ void Node::splineNodeLogLike(modelParam& data, arma::vec &curr_res){
         arma::cube B_t_(data.p,n_leaf,data.d_var);
 
         arma::cube B_test_(n_leaf_test,data.p,data.d_var);
-        arma::mat z_t_ones_(data.p,data.d_var);
-        arma::vec leaf_res_ = arma::vec(n_leaf);
+        arma::mat b_t_ones_(data.p,data.d_var);
+        arma::vec leaf_res_ = arma::vec(n_leaf,arma::fill::zeros);
 
         // Some aux elements
         arma::mat ones_vec(n_leaf,1,arma::fill::ones);
@@ -1182,7 +1183,7 @@ void Node::splineNodeLogLike(modelParam& data, arma::vec &curr_res){
                 B_t_.slice(k) = B_.slice(k).t();
                 // cout << "Error on B_ones" << endl;
 
-                z_t_ones_.col(k) = B_t_.slice(k)*ones_vec; // Col-sums from B - gonna use this again to sample beta_0 (remember is a row vector)
+                b_t_ones_.col(k) = B_t_.slice(k)*ones_vec; // Col-sums from B - gonna use this again to sample beta_0 (remember is a row vector)
                 // cout << "Error on res_cov" << endl;
 
                 res_cov = res_cov + (1/data.tau_b(k))*B_.slice(k)*data.P_inv*B_t_.slice(k);
@@ -1200,7 +1201,7 @@ void Node::splineNodeLogLike(modelParam& data, arma::vec &curr_res){
         // Sotring the new quantities for the node
         B = B_;
         B_t = B_t_;
-        z_t_ones = z_t_ones_;
+        b_t_ones = b_t_ones_;
         B_test = B_test_;
         leaf_res = leaf_res_;
 
@@ -1227,37 +1228,53 @@ void updateBeta(Node* tree, modelParam &data){
 
         // Getting the terminal nodes
         std::vector<Node*> t_nodes = leaves(tree);
-        arma::mat aux_diag(data.p,data.p,arma::fill::eye);
-
         // Iterating over the terminal nodes and updating the beta values
         for(int i = 0; i < t_nodes.size();i++){
+
                 if(t_nodes[i]->n_leaf==0 ){
                         /// Skip nodes that doesn't have any observation within terminal node
                         cout << " SKIPPED" << endl;
                         continue;
                 }
 
-                // Calculating a cube with all {B^(j)}\beta
-                // cout << "error in B_j_beta" << endl;
-                arma::mat B_j_beta(t_nodes[i]->n_leaf,data.d_var);
-                // cout << "Dimensions of B are: " << t_nodes[i]->B.n_rows << " " <<  t_nodes[i]->B.n_cols << " " <<  t_nodes[i]->B.n_slices << endl;
-                for(int k = 0; k<data.d_var;k++){
-                        B_j_beta.col(k) = t_nodes[i]->B.slice(k)*t_nodes[i]->betas.col(k);
-                }
 
-                // cout << "error in Beta sampling" << endl;
+
+                // arma::mat B_j_beta(t_nodes[i]->n_leaf,data.d_var,arma::fill::zeros);
+                // // cout << "Dimensions of B are: " << t_nodes[i]->B.n_rows << " " <<  t_nodes[i]->B.n_cols << " " <<  t_nodes[i]->B.n_slices << endl;
+                // for(int k = 0; k<data.d_var;k++){
+                //         B_j_beta.col(k) = t_nodes[i]->B.slice(k)*t_nodes[i]->betas.col(k);
+                // }
+                //
+                // cout << "Dimension of B: " << t_nodes[i]->B.n_rows << " " << t_nodes[i]->B.n_cols << " " <<t_nodes[i]->B.n_slices << endl;
 
                 // Iterating ove each predictor
                 for(int j=0;j<data.d_var;j++){
+
+                        // Cov aux mat
+                        arma::mat cov_sum_aux(t_nodes[i]->n_leaf, 1,arma::fill::zeros);
+
+                        // Getting the sum element
+                        for(int k = 0; k < data.d_var; k++){
+                                if(k == j){
+                                        continue;
+                                }
+                                cov_sum_aux = cov_sum_aux + t_nodes[i]->B.slice(k)*t_nodes[i]->betas.col(k);
+                        }
+
                         // Calculating elements exclusive to each predictor
                         arma::mat aux_precision_inv = arma::inv(t_nodes[i]->B_t.slice(j)*t_nodes[i]->B.slice(j)+(data.tau_b(j)/data.tau)*data.P);
-                        arma::mat beta_mean = aux_precision_inv*(t_nodes[i]->B_t.slice(j)*t_nodes[i]->leaf_res - t_nodes[i]->B_t.slice(j)*(t_nodes[i]->beta_zero+sum_exclude_col(B_j_beta,j)));
+                        arma::mat beta_mean = aux_precision_inv*(t_nodes[i]->B_t.slice(j)*t_nodes[i]->leaf_res - t_nodes[i]->B_t.slice(j)*(t_nodes[i]->beta_zero+cov_sum_aux));
                         arma::mat beta_cov = (1/data.tau)*aux_precision_inv;
 
                         // cout << "Error sample BETA" << endl;
-                        arma::mat sample = arma::randn<arma::mat>(beta_cov.n_cols);
+                        arma::mat sample = arma::randn<arma::mat>(t_nodes[i]->betas.n_rows);
                         // cout << "Error variance" << endl;
                         t_nodes[i]->betas.col(j) = arma::chol(beta_cov,"lower")*sample + beta_mean;
+                        // cout << "Beta " << j << " values: ";
+                        // for(int u = 0; u<t_nodes[i]->betas.n_rows;u++){
+                        //         cout << t_nodes[i]->betas(u,j) << " ";
+                        // }
+                        // cout << endl;
                 }
         }
 }
@@ -1282,11 +1299,11 @@ void updateGamma(Node* tree, modelParam &data){
                 double sum_beta_z_one = 0;
 
                 for(int j = 0; j<data.d_var;j++){
-                        sum_beta_z_one = sum_beta_z_one + arma::as_scalar(t_nodes[i]->betas.col(j).t()*(t_nodes[i]->z_t_ones.col(j)));
+                        sum_beta_z_one = sum_beta_z_one + arma::as_scalar(t_nodes[i]->betas.col(j).t()*(t_nodes[i]->b_t_ones.col(j)));
                 }
 
                 // cout << "Beta_zero_mean " << endl;
-                double gamma_mean = ((1/s_gamma)*(accu(t_nodes[i]->leaf_res)-sum_beta_z_one));
+                double gamma_mean = (1/s_gamma)*(accu(t_nodes[i]->leaf_res)-sum_beta_z_one);
                 // cout << "Error sample" << endl;
                 double gamma_sd = sqrt(1/(data.tau*s_gamma));
                 // cout << "Error variance" << endl;
@@ -1387,33 +1404,37 @@ void updateTauB(Forest all_trees,
         arma::vec beta_count_total(data.d_var,arma::fill::zeros);
         arma::vec beta_sq_sum_total(data.d_var,arma::fill::zeros);
 
-        for(int t = 0; t< all_trees.trees.size();t++){
+        for(int j = 0; j < data.d_var;j++){
 
-                Node* tree = all_trees.trees[t];
+                for(int t = 0; t< all_trees.trees.size();t++){
 
-                // Getting tau_b
-                vector<Node*> t_nodes = leaves(tree);
+                        Node* tree = all_trees.trees[t];
+
+                        // Getting tau_b
+                        vector<Node*> t_nodes = leaves(tree);
 
 
-                // Iterating over terminal nodes
-                for(int i = 0; i< t_nodes.size(); i++ ){
+                        // Iterating over terminal nodes
+                        for(int i = 0; i< t_nodes.size(); i++ ){
 
-                        // Simple error test
-                        if(t_nodes[i]->betas.n_rows<1) {
-                                continue;
-                        }
+                                // Simple error test
+                                if(t_nodes[i]->betas.n_rows<1) {
+                                        continue;
+                                }
 
-                        for(int j = 0; j < data.d_var;j++){
                                 beta_sq_sum_total(j) = beta_sq_sum_total(j) + arma::as_scalar(t_nodes[i]->betas.col(j).t()*data.P*t_nodes[i]->betas.col(j));
-                                beta_count_total(j) = beta_count_total(j) + data.p;
+                                beta_count_total(j) = beta_count_total(j) + t_nodes[i]->betas.n_rows;
+
                         }
                 }
-
         }
 
+        // cout << "Tau_b values: ";
         for(int j = 0; j < data.d_var; j++){
+                // cout << data.tau_b(j) << " ";
                 // cout << " " << beta_count_total << " ";
                 data.tau_b(j) = R::rgamma((0.5*beta_count_total(j) + 0.5*data.nu),1/(0.5*beta_sq_sum_total(j)+0.5*data.delta(j)*data.nu));
+                // cout << data.tau_b(j) << " ";
         }
         // cout << endl;
         return;
@@ -1423,50 +1444,17 @@ void updateTauB(Forest all_trees,
 // Updating the posterior for Delta;
 void updateDelta(modelParam &data){
         // Iterating over the "p" predictors of delta
+        // cout << "Delta values: " << endl;
+
         for(int j = 0; j<data.d_var;j++){
                 data.delta(j) = R::rgamma((0.5*data.nu + data.a_delta),1/(0.5*data.nu*data.tau_b(j)+data.d_delta));
+                // cout << data.delta(j) << " ";
         }
+        // cout << endl;
         return;
 }
 
-// Updating tau b parameter
-void updateTauBintercept(Forest all_trees,
-                modelParam &data,
-                double a_tau_b,
-                double d_tau_b){
 
-
-        double beta_count_total = 0.0;
-        double beta_sq_sum_total = 0.0;
-
-        for(int t = 0; t< all_trees.trees.size();t++){
-
-                Node* tree = all_trees.trees[t];
-
-                // Getting tau_b
-                vector<Node*> t_nodes = leaves(tree);
-
-
-                // Iterating over terminal nodes
-                for(int i = 0; i< t_nodes.size(); i++ ){
-
-                        if(t_nodes[i]->betas.size()<1) {
-                                continue;
-                        }
-
-                        // Getting only the intercept
-                        beta_sq_sum_total = beta_sq_sum_total + t_nodes[i]->betas[0]*t_nodes[i]->betas[0];
-                        beta_count_total ++;
-                }
-
-        }
-
-        data.tau_b_intercept = R::rgamma((0.5*beta_count_total + a_tau_b),1/(0.5*beta_sq_sum_total+d_tau_b));
-
-
-        return;
-
-}
 
 // Creating the BART function
 // [[Rcpp::export]]
@@ -1515,9 +1503,10 @@ Rcpp::List sbart(arma::mat x_train,
                         p_sample,
                         p_sample_levels);
 
+
         // Getting the Penalisation difference matrix
         data.P = D.t()*D+arma::eye(D.n_cols,D.n_cols)*1e-8;
-
+        // data.P = D.t()*D;
         data.P_inv = arma::inv(data.P);
 
         // Getting the n_post
@@ -1534,16 +1523,10 @@ Rcpp::List sbart(arma::mat x_train,
 
         // Defining other variables
         arma::vec partial_pred = arma::zeros<arma::vec>(data.x_train.n_rows);
-        // arma::vec partial_pred = (data.y*(n_tree-1))/n_tree;
+        // arma::vec partial_pred = (data.y)/n_tree;
         arma::vec partial_residuals = arma::zeros<arma::vec>(data.x_train.n_rows);
-        arma::mat tree_fits_store = arma::zeros<arma::mat>(data.x_train.n_rows,data.n_tree);
-        arma::mat tree_fits_store_test = arma::zeros<arma::mat>(data.x_test.n_rows,data.n_tree);
-
-        // Getting zeros
-        arma::vec prediction_train_sum = arma::zeros<arma::vec>(data.x_train.n_rows);
-        arma::vec prediction_test_sum = arma::zeros<arma::vec>(data.x_test.n_rows);
-        arma::vec prediction_train = arma::zeros<arma::vec>(data.x_train.n_rows);
-        arma::vec prediction_test = arma::zeros<arma::vec>(data.x_test.n_rows);
+        arma::mat tree_fits_store(data.x_train.n_rows,data.n_tree,arma::fill::zeros);
+        arma::mat tree_fits_store_test(data.x_test.n_rows,data.n_tree,arma::fill::zeros);
 
         double verb;
 
@@ -1575,13 +1558,22 @@ Rcpp::List sbart(arma::mat x_train,
                 std::cout.flush();
 
 
-                prediction_train_sum = arma::zeros<arma::vec>(data.x_train.n_rows);
-                prediction_test_sum = arma::zeros<arma::vec>(data.x_test.n_rows);
+                // Getting zeros
+                arma::vec prediction_train_sum(data.x_train.n_rows,arma::fill::zeros);
+                arma::vec prediction_test_sum(data.x_test.n_rows,arma::fill::zeros);
 
                 for(int t = 0; t<data.n_tree;t++){
 
+
+                        // Creating the auxliar prediction vector
+                        arma::vec y_hat(data.y.n_rows,arma::fill::zeros);
+                        arma::vec prediction_test(data.x_test.n_rows,arma::fill::zeros);
+
+
+                        // cout << "Residuals error "<< endl;
                         // Updating the partial residuals
-                        partial_residuals = data.y-partial_pred+tree_fits_store.col(t);
+                        partial_residuals = data.y-sum_exclude_col(tree_fits_store,t);
+                        // cout << "Residuals error 1.0 "<< endl;
 
                         // Iterating over all trees
                         verb = rand_unif();
@@ -1589,7 +1581,7 @@ Rcpp::List sbart(arma::mat x_train,
                                 verb = 0.27;
                         }
 
-                        verb = 0.27;
+                        // verb = 0.27;
                         // Selecting the verb
                         if(verb < 0.3){
                                 // cout << " Grow error" << endl;
@@ -1611,20 +1603,22 @@ Rcpp::List sbart(arma::mat x_train,
                         updateGamma(all_forest.trees[t],data);
                         // Getting predictions
                         // cout << " Error on Get Predictions" << endl;
-                        getPredictions(all_forest.trees[t],data,prediction_train,prediction_test);
+                        getPredictions(all_forest.trees[t],data,y_hat,prediction_test);
 
-
-                        // Updating the partial pred
-                        partial_pred = partial_pred - tree_fits_store.col(t) + prediction_train;
-
-                        tree_fits_store.col(t) = prediction_train;
-
-                        prediction_train_sum = prediction_train_sum + prediction_train;
-
-                        prediction_test_sum = prediction_test_sum + prediction_test;
+                        // Updating the tree
+                        // cout << "Residuals error 2.0"<< endl;
+                        tree_fits_store.col(t) = y_hat;
+                        // cout << "Residuals error 3.0"<< endl;
+                        tree_fits_store_test.col(t) = prediction_test;
+                        // cout << "Residuals error 4.0"<< endl;
 
 
                 }
+
+                // Summing over all trees
+                prediction_train_sum = sum(tree_fits_store,1);
+
+                prediction_test_sum = sum(tree_fits_store_test,1);
 
                 // Updating the Tau
                 // std::cout << "Error TauB: " << data.tau_b << endl;
@@ -1685,7 +1679,7 @@ arma::mat mat_init(int n){
 //[[Rcpp::export]]
 arma::vec vec_init(int n){
         arma::vec A(n);
-        return A;
+        return A+3.0;
 }
 
 

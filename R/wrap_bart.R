@@ -130,7 +130,7 @@ rbart <- function(x_train,
      # Call the bart function
      tau_init <- nsigma^(-2)
      mu_init <- mean(y_scale)
-     tau_init <- 0.01
+     # tau_init <- 0.01
 
      # Creating the vector that stores all trees
      all_tree_post <- vector("list",length = round(n_mcmc-n_burn))

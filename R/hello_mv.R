@@ -5,25 +5,25 @@ Rcpp::sourceCpp("src/mpsBART.cpp")
 source("R/other_functions.R")
 source("R/wrap_bart.R")
 source("R/bayesian_simulation.R")
-n_ <- 200
+n_ <- 300
 set.seed(42)
 
 # Simulation 1
-fried_sim <- mlbench::mlbench.friedman1(n = n_,sd = 0.01)
-friedman_no_interaction <- function (n, sd = 1)
-{
-        x <- matrix(runif(4 * n), ncol = 4)
-        y <- 10 * sin(pi * x[, 1] )
-        y <- y + 20 * (x[, 2] - 0.5)^2 + 10 * x[, 3] + 5 * x[, 4]
-        if (sd > 0) {
-                y <- y + rnorm(n, sd = sd)
-        }
-        list(x = x, y = y)
-}
-
 sd_ <- 1
-fried_sim <- friedman_no_interaction(n = n_,sd = sd_)
-fried_sim_new_sample <- friedman_no_interaction(n = n_,sd = sd_)
+fried_sim <- mlbench::mlbench.friedman1(n = n_,sd = sd_)
+# friedman_no_interaction <- function (n, sd = 1)
+# {
+#         x <- matrix(runif(4 * n), ncol = 4)
+#         y <- 10 * sin(pi * x[, 1] )
+#         y <- y + 20 * (x[, 2] - 0.5)^2 + 10 * x[, 3] + 5 * x[, 4]
+#         if (sd > 0) {
+#                 y <- y + rnorm(n, sd = sd)
+#         }
+#         list(x = x, y = y)
+# }
+#
+# fried_sim <- friedman_no_interaction(n = n_,sd = sd_)
+fried_sim_new_sample <- mlbench::mlbench.friedman1(n = n_,sd = sd_)
 
 x <- fried_sim$x[,,drop = FALSE]
 x_new <- fried_sim_new_sample$x
@@ -37,8 +37,9 @@ x_test <- as.data.frame(x_new)
 # Testing the mpsBART
 bart_test <- rbart(x_train = x,y = unlist(c(y)),x_test = x_test,
                    n_tree = 10,n_mcmc = 2500,alpha = 0.95,
-                   dif_order = 1,
-                   beta = 2,nIknots = 50,delta = 1,
+                   dif_order = 2,
+                   beta = 2,nIknots = 30,delta = 1,
+                   a_delta = 0.0001,d_delta = 0.0001,nu = 2,
                    df = 3,sigquant = 0.9,
                    n_burn = 500,scale_bool = TRUE)
 
@@ -65,4 +66,6 @@ rmse(x = fried_sim_new_sample$y,y = rowMeans(bart_test$y_hat_test))
 par(mfrow=c(1,1))
 plot(bartmod$yhat.test.mean,rowMeans(bart_test$y_hat_test))
 plot(bartmod$yhat.train.mean,rowMeans(bart_test$y_hat))
+
+# col_zero_two <- apply(x_train[,-1],1,sum)
 
