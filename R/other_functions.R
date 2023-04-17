@@ -180,15 +180,20 @@ d_tau_b_rate <- function(df_tau_b,
 
 
 # Getting the naive value for \tau_b
-nll <- function(dat, x, par,B, tau_b_0_) {
+nll <- function(dat, x, par,B,P, n_tree,tau_b_0_) {
         tau <- par[1]
         tau_b <- par[2]
         y <- dat
         n <- length(y)
-        B_new <- sweep(B, 2, c(tau_b_0_^-1, rep(tau_b^-1, (ncol(B) - 1))), FUN="*", check.margin=FALSE)
+        P_inv <- solve(P+diag(.Machine$double.eps,nrow = nrow(P))*1e8)
+        B_new <- matrix(0, nrow = dim(B)[1], ncol = dim(B)[1])
+        for(i in 1:dim(B)[3]){
+                B_new <- B_new + B[,,i]%*%tcrossprod((P_inv),B[,,i])
+        }
         # tryCatch(-mvnfast::dmvn(t(y), rep(0, n), diag(tau^-1, n) + tcrossprod(B_new), log = TRUE),
         #          error=function(e) -Inf)
-        return(-mvnfast::dmvn(t(y), rep(0, n), diag(tau^-1, n) + tcrossprod(B_new) , log = TRUE))
+        return(-mvtnorm::dmvnorm(x = t(y), mean = rep(0, n),
+                              sigma = diag(tau^-1, n) + (n_tree^-1)*(tau_b_0_^-1)+ (n_tree^-1)*(tau_b^-1)*B_new, log = TRUE))
 }
 
 

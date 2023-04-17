@@ -6,6 +6,7 @@ source("R/other_functions.R")
 source("R/wrap_bart.R")
 source("R/bayesian_simulation.R")
 n_ <- 100
+sd_ <- 1
 set.seed(42)
 # Simulation 1
 x <- matrix(seq(-pi,pi,length.out = n_))
@@ -14,11 +15,31 @@ colnames(x) <- "x"
 colnames(x_new) <- "x"
 # x <- as.data.frame(x)
 # x_test <- as.data.frame(x_new)
-y <- sin(3*x) + rnorm(n = n_,sd = 0.1)
+y <- sin(3*x) + rnorm(n = n_,sd = sd_)
 y[x<0] <- y[x<0] + 2
 y[x>0] <- y[x>0] - 2
 # add_class <- rnorm(n = n_)
 # add_class <- factor(ifelse(add_class>0,"A","B"))
+
+# # # Simulation 1
+fried_sim <- mlbench::mlbench.friedman1(n = n_,sd = sd_)
+friedman_no_interaction <- function (n, sd = 1)
+{
+        x <- matrix(runif(1 * n), ncol = 1)
+        # y <- 10 * sin(pi * x[, 1] )
+        # y <- y + 20 * (x[, 2] - 0.5)^2 + 10 * x[, 3] + 5 * x[, 4]
+        y <- 20 * (x[, 1] - 0.5)^2
+
+        if (sd > 0) {
+                y <- y + rnorm(n, sd = sd)
+        }
+        list(x = x, y = y)
+}
+
+fried_sim <- friedman_no_interaction(n = n_,sd = sd_)
+x <- fried_sim$x
+y <- fried_sim$y
+x_new <- fried_sim$x
 
 # # Simulation 2
 # x <- sort(runif(n_, 0, 1)) # Create some covariate values
@@ -54,26 +75,26 @@ y[x>0] <- y[x>0] - 2
 # colnames(x_new) <- c("x.0","x.1")
 
 # Testing over the motorbike data
-# library(boot)
-# data("motor")
-# x <- motor$times %>% as.matrix
-# y <- motor$accel %>% as.matrix()
-# x_new <- seq(min(x),max(x),length.out = 1000) %>% as.matrix()
-# colnames(x) <- "x"
-# colnames(x_new) <- "x"
-# x_new <- x
+library(boot)
+data("motor")
+x <- motor$times %>% as.matrix
+y <- motor$accel %>% as.matrix()
+x_new <- seq(min(x),max(x),length.out = 1000) %>% as.matrix()
+
 
 
 
 # Transforming into data.frame
+colnames(x) <- "x"
+colnames(x_new) <- "x"
 x <- as.data.frame(x)
 x_test <- as.data.frame(x_new)
 
 # Testing the GP-BART
 bart_test <- rbart(x_train = x,y = unlist(c(y)),x_test = x_test,
-                   n_tree = 10,n_mcmc = 2500,alpha = 0.95,dif_order = 2,
-                   beta = 2,nIknots = 20,delta = 1,
-                   n_burn = 500,scale_bool = TRUE)
+                   n_tree = 10,n_mcmc = 2500,alpha = 0.5,dif_order = 0,
+                   beta = 5,nIknots = 10,delta = 1,prob_tau_b = 0.9,kappa = 2,
+                   n_burn = 500,scale_bool = TRUE,intercept_model = FALSE)
 
 # Convergence plots
 par(mfrow = c(3,1))
@@ -86,8 +107,8 @@ bartmod <- dbarts::bart(x.train = x,y.train = unlist(c(y)),ntree = 200,x.test = 
 
 # Getting the splines model
 library(mgcv)
-splinemod <- gam(y ~ s(x, bs = "tp"), data = data.frame(y = y, x = x))
-pred_spline <- predict(splinemod,newdata = data.frame(x = x_test))
+# splinemod <- gam(y ~ s(x, bs = "tp"), data = data.frame(y = y, x = x))
+# pred_spline <- predict(splinemod,newdata = data.frame(x = x_test))
 
 # library(MOTRbart)
 # motrbartmod <- MOTRbart::motr_bart(x = cbind(1,x),y = c(y))

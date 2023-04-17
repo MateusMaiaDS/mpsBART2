@@ -37,6 +37,10 @@ struct modelParam {
         int n_mcmc;
         int n_burn;
 
+        // Create an indicator of accepted grown trees
+        int grow_accept;
+        bool intercept_model;
+
         // Defining the constructor for the model param
         modelParam(arma::mat x_train_,
                    arma::vec y_,
@@ -59,7 +63,8 @@ struct modelParam {
                    double n_mcmc_,
                    double n_burn_,
                    arma::vec p_sample_,
-                   arma::vec p_sample_levels_);
+                   arma::vec p_sample_levels_,
+                   bool intercept_model_);
 
 };
 

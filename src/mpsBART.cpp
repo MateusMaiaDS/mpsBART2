@@ -195,7 +195,8 @@ modelParam::modelParam(arma::mat x_train_,
                        double n_mcmc_,
                        double n_burn_,
                        arma::vec p_sample_,
-                       arma::vec p_sample_levels_){
+                       arma::vec p_sample_levels_,
+                       bool intercept_model_){
 
         // Assign the variables
         x_train = x_train_;
@@ -222,6 +223,10 @@ modelParam::modelParam(arma::mat x_train_,
         n_burn = n_burn_;
         p_sample = p_sample_;
         p_sample_levels = p_sample_levels_;
+
+        // Grow acceptation ratio
+        grow_accept = 0;
+        intercept_model = intercept_model_;
 
 }
 
@@ -626,9 +631,10 @@ void grow(Node* tree, modelParam &data, arma::vec &curr_res){
         double acceptance = exp(new_tree_log_like - tree_log_like + log_transition_prob + tree_prior);
 
         // Keeping the new tree or not
-        if(rand_unif()< acceptance){
+        if(rand_unif () < acceptance){
                 // Do nothing just keep the new tree
                 // cout << " ACCEPTED" << endl;
+                data.grow_accept++;
         } else {
                 // Returning to the old values
                 g_node->var_split = old_var_split;
@@ -1186,7 +1192,9 @@ void Node::splineNodeLogLike(modelParam& data, arma::vec &curr_res){
                 b_t_ones_.col(k) = B_t_.slice(k)*ones_vec; // Col-sums from B - gonna use this again to sample beta_0 (remember is a row vector)
                 // cout << "Error on res_cov" << endl;
 
-                res_cov = res_cov + (1/data.tau_b(k))*B_.slice(k)*data.P_inv*B_t_.slice(k);
+                // Adding the bestas prior parcel over the residuals covariance
+                // res_cov = res_cov + (1/data.n_tree)*(1/data.tau_b(k))*B_.slice(k)*data.P_inv*B_t_.slice(k);
+                res_cov = res_cov + (1/data.tau_b(k))*B_.slice(k)*data.P_inv*B_t_.slice(k); // Do not penalise by tree number of trees factor
 
                 // Test elements
                 for(int i = 0 ; i < n_leaf_test;i++){
@@ -1206,7 +1214,12 @@ void Node::splineNodeLogLike(modelParam& data, arma::vec &curr_res){
         leaf_res = leaf_res_;
 
         // Adding the remaining quantities
-        res_cov  = ((1/data.tau)*diag_aux + (1/data.tau_b_intercept) + res_cov);
+        // res_cov  = ((1/data.tau)*diag_aux + (1/(data.tau_b_intercept*data.n_tree)) + res_cov);
+        if(data.intercept_model){
+                res_cov  = ((1/data.tau)*diag_aux + (1/data.tau_b_intercept) + res_cov); // Not penalising the number of tree in the intercept
+        } else {
+                res_cov  = (1/data.tau)*diag_aux + res_cov; // Model without the intercept
+        }
 
 
         // If is smaller then the node size still need to update theq quantities;
@@ -1247,7 +1260,7 @@ void updateBeta(Node* tree, modelParam &data){
                 //
                 // cout << "Dimension of B: " << t_nodes[i]->B.n_rows << " " << t_nodes[i]->B.n_cols << " " <<t_nodes[i]->B.n_slices << endl;
 
-                // Iterating ove each predictor
+                // Iterating over each predictor
                 for(int j=0;j<data.d_var;j++){
 
                         // Cov aux mat
@@ -1262,8 +1275,17 @@ void updateBeta(Node* tree, modelParam &data){
                         }
 
                         // Calculating elements exclusive to each predictor
-                        arma::mat aux_precision_inv = arma::inv(t_nodes[i]->B_t.slice(j)*t_nodes[i]->B.slice(j)+(data.tau_b(j)/data.tau)*data.P);
-                        arma::mat beta_mean = aux_precision_inv*(t_nodes[i]->B_t.slice(j)*t_nodes[i]->leaf_res - t_nodes[i]->B_t.slice(j)*(t_nodes[i]->beta_zero+cov_sum_aux));
+                        // arma::mat aux_precision_inv = arma::inv(t_nodes[i]->B_t.slice(j)*t_nodes[i]->B.slice(j)+((data.n_tree*data.tau_b(j))/data.tau)*data.P); // Correction with the number of trees
+                        arma::mat aux_precision_inv = arma::inv(t_nodes[i]->B_t.slice(j)*t_nodes[i]->B.slice(j)+((data.tau_b(j))/data.tau)*data.P);
+
+                        // Calculating the mean and variance;
+                        arma::mat beta_mean;
+                        if(data.intercept_model){
+                                beta_mean = aux_precision_inv*(t_nodes[i]->B_t.slice(j)*t_nodes[i]->leaf_res - t_nodes[i]->B_t.slice(j)*(t_nodes[i]->beta_zero+cov_sum_aux)); // With intercept
+                        } else {
+                                beta_mean = aux_precision_inv*(t_nodes[i]->B_t.slice(j)*t_nodes[i]->leaf_res - t_nodes[i]->B_t.slice(j)*(cov_sum_aux));
+                        }
+
                         arma::mat beta_cov = (1/data.tau)*aux_precision_inv;
 
                         // cout << "Error sample BETA" << endl;
@@ -1295,7 +1317,9 @@ void updateGamma(Node* tree, modelParam &data){
                         continue;
                 }
                 // cout << "Error mean" << endl;
-                double s_gamma = t_nodes[i]->n_leaf+(data.tau_b_intercept/data.tau);
+                // double s_gamma = t_nodes[i]->n_leaf+((data.n_tree*data.tau_b_intercept)/data.tau); // Penalising the number of trees
+                double s_gamma = t_nodes[i]->n_leaf+((data.tau_b_intercept)/data.tau);
+
                 double sum_beta_z_one = 0;
 
                 for(int j = 0; j<data.d_var;j++){
@@ -1336,7 +1360,13 @@ void getPredictions(Node* tree,
                 }
 
                 // Getting the vector of prediction for the betas and b for this node
-                arma::vec leaf_y_hat = t_nodes[i]->beta_zero + betas_b_sum ;
+                arma::vec leaf_y_hat;
+
+                if(data.intercept_model){
+                        leaf_y_hat = betas_b_sum + t_nodes[i]->beta_zero ;
+                } else {
+                        leaf_y_hat = betas_b_sum ; // No intercept model
+                }
 
                 // Message to check if the dimensions are correct;
                 if(leaf_y_hat.size()!=t_nodes[i]->n_leaf){
@@ -1367,7 +1397,13 @@ void getPredictions(Node* tree,
 
 
                 // Creating the y_hattest
-                arma::vec leaf_y_hat_test = t_nodes[i]->beta_zero + betas_b_sum_test;
+                arma::vec leaf_y_hat_test;
+                if(data.intercept_model){
+                        leaf_y_hat_test = betas_b_sum_test + t_nodes[i]->beta_zero ;
+                } else {
+                        leaf_y_hat_test = betas_b_sum_test  ; // No intercept model
+                }
+
 
 
                 // Regarding the test samples
@@ -1433,10 +1469,51 @@ void updateTauB(Forest all_trees,
         for(int j = 0; j < data.d_var; j++){
                 // cout << data.tau_b(j) << " ";
                 // cout << " " << beta_count_total << " ";
+                // data.tau_b(j) = R::rgamma((0.5*beta_count_total(j) + 0.5*data.nu),1/(0.5*data.n_tree*beta_sq_sum_total(j)+0.5*data.delta(j)*data.nu)); // Add any penalty over the number of trees
                 data.tau_b(j) = R::rgamma((0.5*beta_count_total(j) + 0.5*data.nu),1/(0.5*beta_sq_sum_total(j)+0.5*data.delta(j)*data.nu));
+
                 // cout << data.tau_b(j) << " ";
         }
         // cout << endl;
+        return;
+
+}
+
+// Updating tau b parameter
+void updateTauBintercept(Forest all_trees,
+                         modelParam &data,
+                         double a_tau_b,
+                         double d_tau_b){
+
+
+        double beta_count_total = 0.0;
+        double beta_sq_sum_total = 0.0;
+
+        for(int t = 0; t< all_trees.trees.size();t++){
+
+                Node* tree = all_trees.trees[t];
+
+                // Getting tau_b
+                vector<Node*> t_nodes = leaves(tree);
+
+
+                // Iterating over terminal nodes
+                for(int i = 0; i< t_nodes.size(); i++ ){
+
+                        if(t_nodes[i]->betas.size()<1) {
+                                continue;
+                        }
+
+                        // Getting only the intercept
+                        beta_sq_sum_total = beta_sq_sum_total + t_nodes[i]->beta_zero*t_nodes[i]->beta_zero;
+                        beta_count_total ++;
+                }
+
+        }
+
+        data.tau_b_intercept = R::rgamma((0.5*beta_count_total + a_tau_b),1/(0.5*data.n_tree*beta_sq_sum_total+d_tau_b));
+
+
         return;
 
 }
@@ -1474,7 +1551,8 @@ Rcpp::List sbart(arma::mat x_train,
           double nu, double delta,
           double a_delta, double d_delta,
           double a_tau_b, double d_tau_b,
-          arma::vec p_sample, arma::vec p_sample_levels){
+          arma::vec p_sample, arma::vec p_sample_levels,
+          bool intercept_model){
 
         // Posterior counter
         int curr = 0;
@@ -1501,7 +1579,8 @@ Rcpp::List sbart(arma::mat x_train,
                         n_mcmc,
                         n_burn,
                         p_sample,
-                        p_sample_levels);
+                        p_sample_levels,
+                        intercept_model);
 
 
         // Getting the Penalisation difference matrix
@@ -1572,8 +1651,12 @@ Rcpp::List sbart(arma::mat x_train,
 
                         // cout << "Residuals error "<< endl;
                         // Updating the partial residuals
-                        partial_residuals = data.y-sum_exclude_col(tree_fits_store,t);
-                        // cout << "Residuals error 1.0 "<< endl;
+                        if(data.n_tree>1){
+                                partial_residuals = data.y-sum_exclude_col(tree_fits_store,t);
+
+                        } else {
+                                partial_residuals = data.y;
+                        }
 
                         // Iterating over all trees
                         verb = rand_unif();
@@ -1600,7 +1683,11 @@ Rcpp::List sbart(arma::mat x_train,
                         // cout << "Error on Beta" << endl;
                         updateBeta(all_forest.trees[t], data);
                         // cout << "Error on Gamma" << endl;
-                        updateGamma(all_forest.trees[t],data);
+
+                        if(data.intercept_model){
+                                updateGamma(all_forest.trees[t],data);
+                        }
+
                         // Getting predictions
                         // cout << " Error on Get Predictions" << endl;
                         getPredictions(all_forest.trees[t],data,y_hat,prediction_test);
@@ -1623,6 +1710,8 @@ Rcpp::List sbart(arma::mat x_train,
                 // Updating the Tau
                 // std::cout << "Error TauB: " << data.tau_b << endl;
                 updateTauB(all_forest,data);
+                // updateTauBintercept(all_forest,data,a_tau_b,d_tau_b);
+
                 // std::cout << "Error Delta: " << data.delta << endl;
                 updateDelta(data);
                 // std::cout << "Error Tau: " << data.tau<< endl;
@@ -1665,7 +1754,8 @@ Rcpp::List sbart(arma::mat x_train,
                                   tau_post,
                                   all_tree_post,
                                   tau_b_post,
-                                  tau_b_post_intercept);
+                                  tau_b_post_intercept,
+                                  data.grow_accept);
 }
 
 
