@@ -41,6 +41,9 @@ struct modelParam {
         int grow_accept;
         bool intercept_model;
 
+        // Create a boolean to only use stumps
+        bool stump;
+
         // Defining the constructor for the model param
         modelParam(arma::mat x_train_,
                    arma::vec y_,
@@ -64,7 +67,8 @@ struct modelParam {
                    double n_burn_,
                    arma::vec p_sample_,
                    arma::vec p_sample_levels_,
-                   bool intercept_model_);
+                   bool intercept_model_,
+                   bool stump_);
 
 };
 

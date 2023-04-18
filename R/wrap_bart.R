@@ -22,7 +22,8 @@ rbart <- function(x_train,
                   d_delta = 0.0001,
                   df_tau_b = 3,
                   prob_tau_b = 0.9,
-                  intercept_model = TRUE) {
+                  intercept_model = TRUE,
+                  stump = FALSE) {
 
      # Verifying if x_train and x_test are matrices
      if(!is.data.frame(x_train) || !is.data.frame(x_test)){
@@ -71,9 +72,14 @@ rbart <- function(x_train,
      max_x <- apply(x_train_scale, 2, max)
 
      # Getting the internal knots
+     # knots <- apply(x_train_scale,
+     #                2,
+     #                function(x){quantile(x,seq(0,1,length.out = nIknots+2))[-c(1,nIknots+2)]})
+
      knots <- apply(x_train_scale,
                     2,
-                    function(x){quantile(x,seq(0,1,length.out = nIknots+2))[-c(1,nIknots+2)]})
+                    function(x){seq(min(x),max(x),length.out = nIknots)})
+
 
      # Creating a array of basis functions (only for continuous variables)
      continuous_vars <- col_names[!(col_names %in% dummy_x$facVars)]
@@ -107,7 +113,8 @@ rbart <- function(x_train,
      # Scaling "y"
      if(scale_bool){
         y_scale <- normalize_bart(y = y,a = min_y,b = max_y)
-        tau_b_0 <- tau_b <- tau_mu <- 100*(4*n_tree*(kappa^2))
+        tau_b_0 <- 100000*(4*n_tree*(kappa^2))
+        tau_b <- tau_mu <- (4*n_tree*(kappa^2))
         # tau_b <- tau_mu <- 0.1
 
      } else {
@@ -183,7 +190,8 @@ rbart <- function(x_train,
           a_tau_b,d_tau_b,
           original_p, # Getting the p available variables
           n_levels, # Getting the sample levels
-          intercept_model = intercept_model)
+          intercept_model = intercept_model,
+          stump)
 
 
      if(scale_bool){

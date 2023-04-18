@@ -92,9 +92,11 @@ x_test <- as.data.frame(x_new)
 
 # Testing the GP-BART
 bart_test <- rbart(x_train = x,y = unlist(c(y)),x_test = x_test,
-                   n_tree = 10,n_mcmc = 2500,alpha = 0.5,dif_order = 0,
-                   beta = 5,nIknots = 10,delta = 1,prob_tau_b = 0.9,kappa = 2,
-                   n_burn = 500,scale_bool = TRUE,intercept_model = FALSE)
+                   n_tree = 5,n_mcmc = 2500,alpha = 0.95,dif_order = 0,
+                   beta = 2,nIknots = 30,delta = 1,
+                   prob_tau_b = 0.9,kappa = 2,
+                   n_burn = 500,scale_bool = TRUE,
+                   intercept_model = TRUE,stump = TRUE)
 
 # Convergence plots
 par(mfrow = c(3,1))

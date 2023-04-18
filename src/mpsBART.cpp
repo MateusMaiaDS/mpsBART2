@@ -196,7 +196,8 @@ modelParam::modelParam(arma::mat x_train_,
                        double n_burn_,
                        arma::vec p_sample_,
                        arma::vec p_sample_levels_,
-                       bool intercept_model_){
+                       bool intercept_model_,
+                       bool stump_){
 
         // Assign the variables
         x_train = x_train_;
@@ -226,7 +227,8 @@ modelParam::modelParam(arma::mat x_train_,
 
         // Grow acceptation ratio
         grow_accept = 0;
-        intercept_model = intercept_model_;
+        intercept_model = intercept_model_; // Checking if the model includes a intercept or not
+        stump = stump_; // Checking if only restrict the model to stumps
 
 }
 
@@ -629,6 +631,10 @@ void grow(Node* tree, modelParam &data, arma::vec &curr_res){
 
         // Calculating the acceptance ratio
         double acceptance = exp(new_tree_log_like - tree_log_like + log_transition_prob + tree_prior);
+
+        if(data.stump){
+                acceptance = acceptance*(-1);
+        }
 
         // Keeping the new tree or not
         if(rand_unif () < acceptance){
@@ -1552,7 +1558,8 @@ Rcpp::List sbart(arma::mat x_train,
           double a_delta, double d_delta,
           double a_tau_b, double d_tau_b,
           arma::vec p_sample, arma::vec p_sample_levels,
-          bool intercept_model){
+          bool intercept_model,
+          bool stump){
 
         // Posterior counter
         int curr = 0;
@@ -1580,7 +1587,8 @@ Rcpp::List sbart(arma::mat x_train,
                         n_burn,
                         p_sample,
                         p_sample_levels,
-                        intercept_model);
+                        intercept_model,
+                        stump);
 
 
         // Getting the Penalisation difference matrix
@@ -1709,7 +1717,7 @@ Rcpp::List sbart(arma::mat x_train,
 
                 // Updating the Tau
                 // std::cout << "Error TauB: " << data.tau_b << endl;
-                updateTauB(all_forest,data);
+                // updateTauB(all_forest,data);
                 // updateTauBintercept(all_forest,data,a_tau_b,d_tau_b);
 
                 // std::cout << "Error Delta: " << data.delta << endl;

@@ -10,7 +10,7 @@ source("R/bayesian_simulation.R")
 source("R/cv.R")
 
 # Creating the kfold object
-n_ <- 500
+n_ <- 100
 set.seed(42)
 
 # Simulation 1
@@ -52,12 +52,12 @@ for(i in 1:n_fold){
      set.seed(42)
      # Testing the mpsBART
      mpsbart <- rbart(x_train = x_train,y = unlist(c(y_train)),x_test = x_test,
-                        n_tree = 10,n_mcmc = 2500,alpha = 0.95,
+                        n_tree = 10,n_mcmc = 3000,alpha = 0.5,
                         dif_order = 2,
-                        beta = 2,nIknots = 30,delta = 1,
+                        beta = 5,nIknots = 50,delta = 1,
                         a_delta = 0.0001,d_delta = 0.0001,nu = 2,
-                        df = 3,sigquant = 0.9,
-                        n_burn = 500,scale_bool = TRUE)
+                        df = 3,sigquant = 0.9,intercept_model = TRUE,
+                        n_burn = 1000,scale_bool = TRUE)
 
 
      # Adding lines in it
@@ -94,7 +94,7 @@ for(i in 1:n_fold){
      # mgcv_spline <- gam(y ~ s(x.1,bs = "ps",m = c(2,2))+s(x.2,bs = "ps",m = c(2,2))+s(x.3,bs = "ps",m = c(2,2))+
      #                            s(x.4,bs = "ps",m = c(2,2)) +s(x.5,bs = "ps",m = c(2,2)) +
      #                            te(x.1,x.2), data = cbind(x_train,y_train))
-     mgcv_spline <- gam(y ~ s(x,bs = "ps",m = c(2,2)) , data = cbind(x_train,y_train))
+     mgcv_spline <- gam(y ~ s(x,bs = "ps",m = c(2,2))  , data = cbind(x_train,y_train))
 
 
      mgcv_pred <- predict(mgcv_spline, newdata = x_test)
@@ -124,14 +124,15 @@ for(i in 1:n_fold){
 
 model_metrics <- model_metrics[complete.cases(model_metrics),]
 model_metrics %>%
+        ggplot()+
+        geom_boxplot(mapping = aes(x = model, y = rmse_train))+
+        ggtitle("RMSE over the training set")
+
+model_metrics %>%
 ggplot()+
         geom_boxplot(mapping = aes(x = model, y = rmse))+
         ggtitle("RMSE over the test set")
 
-model_metrics %>%
-ggplot()+
-        geom_boxplot(mapping = aes(x = model, y = rmse_train))+
-        ggtitle("RMSE over the training set")
 
 model_metrics %>%
         group_by(model) %>%
