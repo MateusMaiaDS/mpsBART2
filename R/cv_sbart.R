@@ -52,11 +52,11 @@ for(i in 1:n_fold){
      set.seed(42)
      # Testing the mpsBART
      mpsbart <- rbart(x_train = x_train,y = unlist(c(y_train)),x_test = x_test,
-                        n_tree = 10,n_mcmc = 3000,alpha = 0.5,
+                        n_tree = 1,n_mcmc = 3000,alpha = 0.95,
                         dif_order = 2,
-                        beta = 5,nIknots = 50,delta = 1,
-                        a_delta = 0.0001,d_delta = 0.0001,nu = 2,
-                        df = 3,sigquant = 0.9,intercept_model = TRUE,
+                        beta = 2,nIknots = 30,delta = 1,
+                        a_delta = 0.0001,d_delta = 0.0001,nu = 2,a = 0.1,
+                        df = 3,sigquant = 0.9,intercept_model = FALSE,stump = TRUE,
                         n_burn = 1000,scale_bool = TRUE)
 
 

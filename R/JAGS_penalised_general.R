@@ -52,21 +52,26 @@ friedman_univariate<- function (n, sd = 1)
      list(x = x, y = y)
 }
 
-fried_sim <- friedman_univariate(n = n_,sd = sd_) %>% as.data.frame()
+fried_sim <- friedman_univariate(n = n_,sd = sd_) %>% as.data.frame() %>% arrange(x)
 
 x <- fried_sim$x
 y <- fried_sim$y
 
 # Setting
-nIknots <- 10
-knots <- quantile(x,seq(0,1,length.out = nIknots+2))[-c(1,nIknots+2)]
+nIknots <- 20
+# knots <- quantile(x,seq(0,1,length.out = nIknots+2))[-c(1,nIknots+2)]
 
 # To understand the Boundary Knots see rejoinder sectin from Eilers (1996)
 
 tau_b <- 1 # Parameters as aboveau_b^-1))))
-knots <- quantile(x,seq(0,1,length.out = nIknots+2))[-c(1,nIknots+2)]
-basis <- splines::bs(x = x,knots = knots,intercept = FALSE,Boundary.knots = c(min(x)-2,max(x)+2))
-B_train <- cbind(1,basis)
+min_x <- min(x)
+max_x <- max(x)
+ndx <- nIknots
+bdeg <- 3
+dx <- (max_x-min_x)/ndx
+knots <- seq(from = min_x-bdeg*dx,to = max_x+bdeg*dx, by = dx)
+basis <- splines::spline.des(knots = knots,x = x,ord = bdeg+1,derivs = x*0,outer.ok = FALSE)$design
+B_train <- basis
 
 
 # Setting x and y to be x_train and x_test
@@ -105,7 +110,15 @@ if(n_diffs==0){
      D <- diff(diag(ncol(B_train)), diff = n_diffs )
 }
 
-P <- crossprod(D) + diag(1e-6,nrow = ncol(D))
+P <- crossprod(D)
+P_0 <- matrix(0 , nrow = nrow(P), ncol = ncol(P))
+
+if(n_diffs >1 ){
+  diag(P_0[1:n_diffs,1:n_diffs]) <- 1
+} else{
+  P_0[1,1] <- 1
+}
+
 
 # Jags code ---------------------------------------------------------------
 
@@ -117,13 +130,14 @@ model {
 
   # RW prior on beta
   beta_intercept ~ dnorm(0,tau_b_0)
+
   for(i in 1:n_ps){
-     betas[1:N_knots,i] ~ dmnorm(rep(0,N_knots),tau_b*P)
+     betas[1:N_knots,i] ~ dmnorm(rep(0,N_knots),tau_b*(a*P_0 + P))
   }
 
   # Priors on beta values
-  tau ~ dgamma(a_tau, d_tau)
   tau_b ~ dgamma(0.5 * nu, 0.5 * delta * nu)
+  tau ~ dgamma(a_tau, d_tau)
   delta ~ dgamma(a_delta, d_delta)
 }"
 
@@ -136,6 +150,7 @@ model_data <- list(N = nrow(B_train),
                    y = as.vector(y_train),
                    B = B_train,
                    P = P,
+                   P_0 = P_0,
                    ones = ones,
                    N_knots = ncol(B_train),
                    a_tau = a_tau,
@@ -143,7 +158,8 @@ model_data <- list(N = nrow(B_train),
                    a_delta = 0.0001,
                    d_delta = 0.0001,
                    tau_b_0 = tau_b_0,
-                   nu  = 2)
+                   nu  = 2,
+                   a = 0.0001)
 
 # Choose the parameters to watch
 model_parameters <- c("betas", "tau", "tau_b","delta","beta_intercept")
@@ -156,7 +172,7 @@ model_run <- jags(
 )
 
 # Simulated results -------------------------------------------------------
-
+saveRDS(model_run,file = paste0("R/JAGS_exp/model_run_",n_diffs,"_dif.Rds"))
 # Results and output of the simulated example, to include convergence checking, output plots, interpretation etc
 # print(model_run)
 
@@ -177,12 +193,14 @@ y_train_hat_up <- (B_train %*% beta_up) %*% ones + matrix(model_run$BUGSoutput$m
 par(mfrow=c(1,1))
 plot(x,y, main = c("Sum of splines"))
 
-points(x, y_train_hat,pch=20) # True line
 for(i in 1:n_ps){
      each_tree_pred[,i] <- B_train%*%beta_mean[,i]
      points(x, each_tree_pred[,i]+matrix(model_run$BUGSoutput$mean$beta_intercept, nrow = nrow(B_train)),
-            pch=20, col = alpha(i,0.5)) # True line
+            pch=20, col = alpha(i,0.3)) # True line
 }
-lines(x, y_train_hat_low, col = "blue", lty = 2) # Predicted low
-lines(x, y_train_hat_up, col = "blue", lty = 2) # Predicted high
+# lines(x, y_train_hat_low, col = "blue", lty = 2) # Predicted low
+# lines(x, y_train_hat_up, col = "blue", lty = 2) # Predicted high
+points(x, y_train_hat,pch=20) # True line
+
+model_run$BUGSoutput$mean$tau_b
 

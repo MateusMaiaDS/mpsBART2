@@ -1559,7 +1559,8 @@ Rcpp::List sbart(arma::mat x_train,
           double a_tau_b, double d_tau_b,
           arma::vec p_sample, arma::vec p_sample_levels,
           bool intercept_model,
-          bool stump){
+          bool stump,
+          double a){
 
         // Posterior counter
         int curr = 0;
@@ -1592,7 +1593,10 @@ Rcpp::List sbart(arma::mat x_train,
 
 
         // Getting the Penalisation difference matrix
-        data.P = D.t()*D+arma::eye(D.n_cols,D.n_cols)*1e-8;
+        data.P = D.t()*D;
+        data.P(0,0) = data.P(0,0) + 0.0001;
+        data.P(1,1) = data.P(1,1) + 0.0001;
+
         // data.P = D.t()*D;
         data.P_inv = arma::inv(data.P);
 
@@ -1717,7 +1721,7 @@ Rcpp::List sbart(arma::mat x_train,
 
                 // Updating the Tau
                 // std::cout << "Error TauB: " << data.tau_b << endl;
-                // updateTauB(all_forest,data);
+                updateTauB(all_forest,data);
                 // updateTauBintercept(all_forest,data,a_tau_b,d_tau_b);
 
                 // std::cout << "Error Delta: " << data.delta << endl;

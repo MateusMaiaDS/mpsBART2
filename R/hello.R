@@ -16,8 +16,8 @@ colnames(x_new) <- "x"
 # x <- as.data.frame(x)
 # x_test <- as.data.frame(x_new)
 y <- sin(3*x) + rnorm(n = n_,sd = sd_)
-y[x<0] <- y[x<0] + 2
-y[x>0] <- y[x>0] - 2
+y[x<0] <- y[x<0] + 5
+y[x>0] <- y[x>0] - 5
 # add_class <- rnorm(n = n_)
 # add_class <- factor(ifelse(add_class>0,"A","B"))
 
@@ -75,11 +75,11 @@ x_new <- fried_sim$x
 # colnames(x_new) <- c("x.0","x.1")
 
 # Testing over the motorbike data
-library(boot)
-data("motor")
-x <- motor$times %>% as.matrix
-y <- motor$accel %>% as.matrix()
-x_new <- seq(min(x),max(x),length.out = 1000) %>% as.matrix()
+# library(boot)
+# data("motor")
+# x <- motor$times %>% as.matrix
+# y <- motor$accel %>% as.matrix()
+# x_new <- seq(min(x),max(x),length.out = 1000) %>% as.matrix()
 
 
 
@@ -89,13 +89,13 @@ colnames(x) <- "x"
 colnames(x_new) <- "x"
 x <- as.data.frame(x)
 x_test <- as.data.frame(x_new)
-
+n_tree <- 5
 # Testing the GP-BART
 bart_test <- rbart(x_train = x,y = unlist(c(y)),x_test = x_test,
-                   n_tree = 5,n_mcmc = 2500,alpha = 0.95,dif_order = 0,
-                   beta = 2,nIknots = 30,delta = 1,
+                   n_tree = n_tree,n_mcmc = 2500,alpha = 0.95,dif_order = 2,
+                   beta = 2,nIknots = 20,delta = 1,
                    prob_tau_b = 0.9,kappa = 2,
-                   n_burn = 500,scale_bool = TRUE,
+                   n_burn = 500,scale_bool = TRUE,a = 1,
                    intercept_model = TRUE,stump = TRUE)
 
 # Convergence plots

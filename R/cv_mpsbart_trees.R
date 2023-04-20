@@ -67,7 +67,7 @@ for(n_t in 1:length(number_trees)){
                            dif_order = 2,
                            beta = 2,nIknots = 30,delta = 1,
                            a_delta = 0.0001,d_delta = 0.0001,nu = 2,
-                           df = 3,sigquant = 0.9,intercept_model = FALSE,
+                           df = 3,sigquant = 0.9,intercept_model = FALSE,a = number_trees[n_t],
                            n_burn = 500,scale_bool = TRUE)
 
 

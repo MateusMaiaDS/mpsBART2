@@ -23,7 +23,9 @@ rbart <- function(x_train,
                   df_tau_b = 3,
                   prob_tau_b = 0.9,
                   intercept_model = TRUE,
-                  stump = FALSE) {
+                  stump = FALSE,
+                  a # "a" are the constant for the constant values to penalise the number of trees
+                  ) {
 
      # Verifying if x_train and x_test are matrices
      if(!is.data.frame(x_train) || !is.data.frame(x_test)){
@@ -94,14 +96,38 @@ rbart <- function(x_train,
                                   nrow(knots)+3,  # +3 here because is a natural spline
                                   ncol(x_test_scale[,continuous_vars, drop = FALSE])))
 
+     # Setting new parameters for the spline
+     ndx <- nIknots
+     dx <- (max_x-min_x)/ndx
+
+     # New_knots
+     new_knots <- matrix()
+     new_knots <- mapply(min_x,max_x, FUN = function(MIN,MAX){seq(MIN-3*dx,MAX+3*dx, by = dx)})
+
      # Creating the natural B-spline for each predictor
      for(i in 1:length(continuous_vars)){
-             B_train_obj <- splines::bs(x = x_train_scale[,continuous_vars[i], drop = FALSE],knots = knots[,continuous_vars[i]],
-                                        intercept = FALSE,
-                                        Boundary.knots = c((min_x[i]-1),max_x[i]+1))
+             # B_train_obj <- splines::bs(x = x_train_scale[,continuous_vars[i], drop = FALSE],knots = knots[,continuous_vars[i]],
+             #                            intercept = FALSE,
+             #                            Boundary.knots = c((min_x[i]),max_x[i]))
+             B_train_obj <- splines::spline.des(x = x_train_scale[,continuous_vars[i], drop = FALSE],
+                                                knots = new_knots[,continuous_vars[i]],
+                                                ord = 4,
+                                                derivs = 0*x_train_scale[,continuous_vars[i], drop = FALSE])$design
+
              B_train_arr[,,i] <- as.matrix(B_train_obj)
-             B_test_arr[,,i] <- as.matrix(predict(B_train_obj,newx = x_test_scale[,continuous_vars[i], drop = FALSE]))
+             # B_test_arr[,,i] <- as.matrix(predict(B_train_obj,newx = x_test_scale[,continuous_vars[i], drop = FALSE]))
+             B_test_arr[,,i] <- splines::spline.des(x = x_test_scale[,continuous_vars[i], drop = FALSE],
+                                                    knots = new_knots[,continuous_vars[i]],
+                                                    ord = 4,
+                                                    derivs = 0*x_test_scale[,continuous_vars[i], drop = FALSE])$design
+
      }
+
+     # plot(x_train_scale, B_train_obj[,1], ylim = range(B_train_obj), type = 'n',
+     #      ylab = "B")
+     # for(j in 1:ncol(B_train_obj)) {
+     #         points(x_train_scale, B_train_obj[,j], col = j)
+     # }
 
      # R-th difference order matrix
      if(dif_order!=0){
@@ -191,7 +217,8 @@ rbart <- function(x_train,
           original_p, # Getting the p available variables
           n_levels, # Getting the sample levels
           intercept_model = intercept_model,
-          stump)
+          stump,
+          a)
 
 
      if(scale_bool){
